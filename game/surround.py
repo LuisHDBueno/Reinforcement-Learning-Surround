@@ -6,6 +6,7 @@ BOARD_HEIGHT = 32
 BOARD_WIDTH = 32
 
 class HumanBoard():
+    
     colors = [[84, 92, 214], [212, 108, 195], [200, 72, 72], [183, 194, 95]]
     height_score = 30
     height = BOARD_HEIGHT * 10 + height_score
@@ -38,6 +39,11 @@ class HumanBoard():
                 pg.quit()
 
     def win(self, player: int) -> None:
+        """ Render the win text
+
+        :param player: _description_
+        :type player: int
+        """        
         win_text = self.font.render(f"Player {player} win!",
                                        True, (255, 255, 255))
         self.screen.blit(win_text, (self.width//2, self.height//2))
@@ -105,16 +111,17 @@ class Player():
             self.pos_y += y_atualization
 
             board[self.pos_x, self.pos_y] = self.value
-
+        
+        lose = False
         match action:
             case 0:
                 # If the player stay, continue in the same direction
-                lose = False
                 self.move(board, self.last_action)
             case 1:
                 # Check if the player try to go back
                 if self.last_action == 3:
-                    self.move(board, 3)
+                    # If yes, continue in the same direction
+                    board, lose = self.move(board, 3)
                 else:
                     # Check if the player lose
                     lose = check_lose(1, 0)
@@ -125,7 +132,7 @@ class Player():
 
             case 2:
                 if self.last_action == 4:
-                    self.move(board, 4)
+                    board, lose = self.move(board, 4)
                 else:
                     lose = check_lose(0, 1)
                     if not lose:
@@ -134,7 +141,7 @@ class Player():
 
             case 3:
                 if self.last_action == 1:
-                    self.move(board, 1)
+                    board, lose = self.move(board, 1)
                 else:
                     lose = check_lose(-1, 0)
                     if not lose:
@@ -143,7 +150,7 @@ class Player():
 
             case 4:
                 if self.last_action == 2:
-                    self.move(board, 2)
+                    board, lose = self.move(board, 2)
                 else:
                     lose = check_lose(0, -1)
                     if not lose:
@@ -152,7 +159,10 @@ class Player():
         
         return board, lose
 
-    
+class OutOfActionSpace(Exception):
+    def __init__(self) -> None:
+        super().__init__("Action not in action space") 
+
 class Surround():
     f"""Surround game environment
     
@@ -205,7 +215,10 @@ class Surround():
         :return: Tuple of the board, player1 lose and player2 lose
         :rtype: tuple(np.array, bool, bool)
         """
-        # Make the players movement  
+        # Make the players movement
+        if action[0] not in self.action_space or action[1] not in self.action_space:
+            raise OutOfActionSpace
+        
         self.board, lose1 = self.player1.move(self.board, action[0])
         self.board, lose2 = self.player2.move(self.board, action[1])
 
@@ -225,6 +238,7 @@ class Surround():
             # Player1 win
             self.score = (self.score[0] + 1, self.score[1])
             self.reset()
+        print(lose1, lose2)
 
         return self.board, lose1, lose2
 

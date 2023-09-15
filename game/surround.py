@@ -81,21 +81,7 @@ class Player():
         :return: Tuple of the new board and if the player lose
         :rtype: tuple
         """
-        # Auxiliar    
-        def check_lose(x_atualization: int, y_atualization: int) -> bool:
-            """Check if the player lose
-
-            :param x_atualization: number of steps in x axis
-            :type x_atualization: int
-            :param y_atualization: number of steps in y axis
-            :type y_atualization: int
-            :return: If the player lose
-            :rtype: bool
-            """            
-            if board[self.pos_x + x_atualization, self.pos_y + y_atualization] == 1:
-                return True
-            else:
-                return False
+        # Auxiliar
         
         def atualize_pos(x_atualization: int, y_atualization: int) -> None:
             """Atualize the player position
@@ -112,7 +98,6 @@ class Player():
 
             board[self.pos_x, self.pos_y] = self.value
         
-        lose = False
         match action:
             case 0:
                 # If the player stay, continue in the same direction
@@ -121,43 +106,33 @@ class Player():
                 # Check if the player try to go back
                 if self.last_action == 3:
                     # If yes, continue in the same direction
-                    board, lose = self.move(board, 3)
+                    board= self.move(board, 3)
                 else:
-                    # Check if the player lose
-                    lose = check_lose(1, 0)
-                    if not lose:
-                        # If not, atualize the position
-                        atualize_pos(1, 0)
-                        self.last_action = 1
+                    atualize_pos(1, 0)
+                    self.last_action = 1
 
             case 2:
                 if self.last_action == 4:
-                    board, lose = self.move(board, 4)
+                    board = self.move(board, 4)
                 else:
-                    lose = check_lose(0, 1)
-                    if not lose:
-                        atualize_pos(0, 1)
-                        self.last_action = 2
+                    atualize_pos(0, 1)
+                    self.last_action = 2
 
             case 3:
                 if self.last_action == 1:
-                    board, lose = self.move(board, 1)
+                    board = self.move(board, 1)
                 else:
-                    lose = check_lose(-1, 0)
-                    if not lose:
-                        atualize_pos(-1, 0)
-                        self.last_action = 3
+                    atualize_pos(-1, 0)
+                    self.last_action = 3
 
             case 4:
                 if self.last_action == 2:
-                    board, lose = self.move(board, 2)
+                    board = self.move(board, 2)
                 else:
-                    lose = check_lose(0, -1)
-                    if not lose:
-                        atualize_pos(0, -1)
-                        self.last_action = 4
+                    atualize_pos(0, -1)
+                    self.last_action = 4
         
-        return board, lose
+        return board
 
 class OutOfActionSpace(Exception):
     def __init__(self) -> None:
@@ -207,6 +182,23 @@ class Surround():
         # 3 = player2
         self.player2 = Player(BOARD_WIDTH * 3//4, BOARD_HEIGHT//2, 3, 3)
 
+    def check_lose(self, old_board) -> tuple:
+        """Check if one of the players lose
+
+        :param old_board: Board before the move
+        :type old_board: np.array
+        :return: Tuple of player1 lose and player2 lose
+        :rtype: tuple(bool, bool)
+        """
+        lose1 = False
+        lose2 = False
+
+        if old_board[self.player1.pos_x, self.player1.pos_y] != 0:
+            lose1 = True
+        if old_board[self.player2.pos_x, self.player2.pos_y] != 0:
+            lose2 = True
+        return lose1, lose2
+
     def step(self, action: tuple) -> tuple:
         """Make a move in the game environment
 
@@ -219,8 +211,12 @@ class Surround():
         if action[0] not in self.action_space or action[1] not in self.action_space:
             raise OutOfActionSpace
         
-        self.board, lose1 = self.player1.move(self.board, action[0])
-        self.board, lose2 = self.player2.move(self.board, action[1])
+        old_board = self.board.copy()
+
+        self.board = self.player1.move(self.board, action[0])
+        self.board = self.player2.move(self.board, action[1])
+
+        lose1, lose2 = self.check_lose(old_board)
 
         # Render the game if human visualization is needed
         if self.human_render:
@@ -229,13 +225,16 @@ class Surround():
         # Check if the game is over
         if lose1 and lose2:
             # Tie
+            self.human_board.win(0)
             self.reset()
         elif lose1:
             # Player2 win
+            self.human_board.win(2)
             self.score = (self.score[0], self.score[1] + 1)
             self.reset()
         elif lose2:
             # Player1 win
+            self.human_board.win(1)
             self.score = (self.score[0] + 1, self.score[1])
             self.reset()
         print(lose1, lose2)

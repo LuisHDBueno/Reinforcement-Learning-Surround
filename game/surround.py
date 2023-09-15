@@ -249,30 +249,42 @@ class Surround():
         if self.human_render:
             self.human_board.render(self.board, self.score)
 
-        # Check if the game is over
-        if lose1 and lose2:
-            # Tie
-            self.human_board.win(0)
-            self.reset()
-        elif lose1:
-            # Player2 win
-            self.human_board.win(2)
-            self.score = (self.score[0], self.score[1] + 1)
-            self.reset()
-        elif lose2:
-            # Player1 win
-            self.human_board.win(1)
-            self.score = (self.score[0] + 1, self.score[1])
-            self.reset()
-        print(lose1, lose2)
+            # Check if the game is over
+            if lose1 and lose2:
+                # Tie
+                self.human_board.win(0)
+                self.reset()
+            elif lose1:
+                # Player2 win
+                self.human_board.win(2)
+                self.score = (self.score[0], self.score[1] + 1)
+                self.reset()
+            elif lose2:
+                # Player1 win
+                self.human_board.win(1)
+                self.score = (self.score[0] + 1, self.score[1])
+                self.reset()
+        else:
+            if lose1 and lose2:
+                # Tie
+                self.reset()
+            elif lose1:
+                # Player2 win
+                self.score = (self.score[0], self.score[1] + 1)
+                self.reset()
+            elif lose2:
+                # Player1 win
+                self.score = (self.score[0] + 1, self.score[1])
+                self.reset()
 
         return self.board, lose1, lose2
 
 if __name__ == "__main__":
-    jogo = Surround(human_render=True, frame_rate=10)
+    jogo = Surround(human_render=False, frame_rate=10)
     jogo.reset()
     x = 1
-    while x < 100:
+    tempo = time.time()
+    while x < 10000:
         y = 1
         while y < 100:
             acao = (0,1)
@@ -280,3 +292,5 @@ if __name__ == "__main__":
             y += 1
         x += 1
         print(x)
+
+    print(time.time() - tempo)

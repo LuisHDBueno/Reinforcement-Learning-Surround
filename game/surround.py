@@ -49,20 +49,56 @@ class HumanBoard():
     
 class Player():
     def __init__(self, pos_x: int, pos_y: int, init_action: int, value: int) -> None:
+        f""" Init a player
+
+        :param pos_x: Init x position, between 0 and {BOARD_WIDTH - 1}
+        :type pos_x: int
+        :param pos_y: Init y position, between 0 and {BOARD_HEIGHT - 1}
+        :type pos_y: int
+        :param init_action: Init action, 1 = right, 2 = up, 3 = left, 4 = down
+        :type init_action: int
+        :param value: Value of the player
+        :type value: int
+        """        
         self.value = value
         self.pos_x = pos_x
         self.pos_y = pos_y
         self.last_action = init_action
 
-    def move(self, board, action: int) -> tuple:
+    def move(self, board: np.array, action: int) -> tuple:
+        """ Make a move in the board
 
+        :param board: Board of the game
+        :type board: np.array
+        :param action: Action to be made, 0 = stay, 1 = right, 2 = up, 3 = left, 4 = down
+        :type action: int
+        :return: Tuple of the new board and if the player lose
+        :rtype: tuple
+        """
+        # Auxiliar    
         def check_lose(x_atualization: int, y_atualization: int) -> bool:
+            """Check if the player lose
+
+            :param x_atualization: number of steps in x axis
+            :type x_atualization: int
+            :param y_atualization: number of steps in y axis
+            :type y_atualization: int
+            :return: If the player lose
+            :rtype: bool
+            """            
             if board[self.pos_x + x_atualization, self.pos_y + y_atualization] == 1:
                 return True
             else:
                 return False
         
         def atualize_pos(x_atualization: int, y_atualization: int) -> None:
+            """Atualize the player position
+
+            :param x_atualization: number of steps in x axis
+            :type x_atualization: int
+            :param y_atualization: number of steps in y axis
+            :type y_atualization: int
+            """            
             board[self.pos_x, self.pos_y] = 1
 
             self.pos_x += x_atualization
@@ -72,31 +108,47 @@ class Player():
 
         match action:
             case 0:
+                # If the player stay, continue in the same direction
                 lose = False
                 self.move(board, self.last_action)
             case 1:
-                lose = check_lose(1, 0)
-                if not lose:
-                    atualize_pos(1, 0)
-                    self.last_action = 1
+                # Check if the player try to go back
+                if self.last_action == 3:
+                    self.move(board, 3)
+                else:
+                    # Check if the player lose
+                    lose = check_lose(1, 0)
+                    if not lose:
+                        # If not, atualize the position
+                        atualize_pos(1, 0)
+                        self.last_action = 1
 
             case 2:
-                lose = check_lose(0, 1)
-                if not lose:
-                    atualize_pos(0, 1)
-                    self.last_action = 2
+                if self.last_action == 4:
+                    self.move(board, 4)
+                else:
+                    lose = check_lose(0, 1)
+                    if not lose:
+                        atualize_pos(0, 1)
+                        self.last_action = 2
 
             case 3:
-                lose = check_lose(-1, 0)
-                if not lose:
-                    atualize_pos(-1, 0)
-                    self.last_action = 3
+                if self.last_action == 1:
+                    self.move(board, 1)
+                else:
+                    lose = check_lose(-1, 0)
+                    if not lose:
+                        atualize_pos(-1, 0)
+                        self.last_action = 3
 
             case 4:
-                lose = check_lose(0, -1)
-                if not lose:
-                    atualize_pos(0, -1)
-                    self.last_action = 4
+                if self.last_action == 2:
+                    self.move(board, 2)
+                else:
+                    lose = check_lose(0, -1)
+                    if not lose:
+                        atualize_pos(0, -1)
+                        self.last_action = 4
         
         return board, lose
 

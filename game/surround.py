@@ -6,13 +6,32 @@ BOARD_HEIGHT = 32
 BOARD_WIDTH = 32
 
 class HumanBoard():
-    
+    """Class to render the game in a pygame window
+
+    Attributes:
+        colors: list of colors for each element in the board,
+            (0 = empty, 1 = wall, 2 = player1, 3 = player2)
+        height_score: height of the score text
+        height: height of the pygame window
+        width: width of the pygame window
+        screen: pygame screen
+        font: pygame font
+    Methods:
+        render: render the pygame window
+        win: render the win text
+        close: close the pygame window
+    """    
     colors = [[84, 92, 214], [212, 108, 195], [200, 72, 72], [183, 194, 95]]
     height_score = 30
     height = BOARD_HEIGHT * 10 + height_score
     width = BOARD_WIDTH * 10
 
     def __init__(self, frame_rate: int) -> None:
+        """Init the pygame window
+
+        :param frame_rate: Frame rate for human visualization
+        :type frame_rate: int
+        """        
         self.frame_rate = frame_rate
 
         pg.init()
@@ -20,7 +39,14 @@ class HumanBoard():
         self.screen = pg.display.set_mode((self.width, self.height))
         self.font = pg.font.Font(None, 30)
 
-    def render(self, board: np.array, lose1: bool, lose2: bool, score: tuple) -> None:
+    def render(self, board: np.array, score: tuple) -> None:
+        """ Render the window
+
+        :param board: Board of the game
+        :type board: np.array
+        :param score: Tuple of player1 and player2 score
+        :type score: tuple
+        """        
         self.screen.fill((0, 0, 0))
         score_text = self.font.render(f"Score: {score[0]} x {score[1]}",
                                        True, (255, 255, 255))
@@ -46,11 +72,12 @@ class HumanBoard():
         """        
         win_text = self.font.render(f"Player {player} win!",
                                        True, (255, 255, 255))
-        self.screen.blit(win_text, (self.width//2, self.height//2))
+        self.screen.blit(win_text, (self.width//4, self.height//2))
         pg.display.update()
         time.sleep(1)
 
     def close(self) -> None:
+        """Close the pygame window"""        
         pg.quit()
     
 class Player():
@@ -220,7 +247,7 @@ class Surround():
 
         # Render the game if human visualization is needed
         if self.human_render:
-            self.human_board.render(self.board, lose1, lose2, self.score)
+            self.human_board.render(self.board, self.score)
 
         # Check if the game is over
         if lose1 and lose2:

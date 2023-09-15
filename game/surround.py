@@ -138,14 +138,15 @@ class Surround():
 
         return self.board, lose1, lose2
 
-jogo = Surround(human_render=True, frame_rate=10)
-jogo.reset()
-x = 1
-while x < 100:
-    y = 1
-    while y < 100:
-        acao = (0,1)
-        jogo.step(acao)
-        y += 1
-    x += 1
-    print(x)
+if __name__ == "__main__":
+    jogo = Surround(human_render=True, frame_rate=10)
+    jogo.reset()
+    x = 1
+    while x < 100:
+        y = 1
+        while y < 100:
+            acao = (0,1)
+            jogo.step(acao)
+            y += 1
+        x += 1
+        print(x)

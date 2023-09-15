@@ -102,37 +102,75 @@ class Player():
 
     
 class Surround():
+    f"""Surround game environment
+    
+    Attributes:
+        action_space: list of possible actions (0 = stay, 1 = right, 2 = up, 3 = left, 4 = down)
+        score: tuple of player1 and player2 score
+        board: numpy array ({BOARD_WIDTH}, {BOARD_HEIGHT}) of the board
+        player1: player1 object
+        player2: player2 object
+    Methods:
+        reset: reset the game environment
+        step: make a move in the game environment
+    """
     action_space = [0, 1, 2, 3, 4]
     score = (0, 0)
 
     def __init__(self, human_render: bool = False, frame_rate: int = 1) -> None:
+        """Init the game environment and game mode
+
+        :param human_render: Needs human visualization, defaults to False
+        :type human_render: bool, optional
+        :param frame_rate: Frame rate for human visualization, defaults to 1
+        :type frame_rate: int, optional
+        """        
         self.human_render = human_render
         self.frame_rate = frame_rate
+
         if self.human_render:
             self.human_board = HumanBoard(self.frame_rate)
 
     def reset(self) -> None:
+        """Reset the game enviroment (and initialize)"""
+        # 0 = empty
         self.board = np.zeros((BOARD_WIDTH, BOARD_HEIGHT), dtype = int)
+        # 1 = wall
         self.board[0, :] = 1
         self.board[BOARD_WIDTH - 1, :] = 1
         self.board[:, 0] = 1
         self.board[:, BOARD_HEIGHT - 1] = 1
+        # 2 = player1
         self.player1 = Player(BOARD_WIDTH * 1//4, BOARD_HEIGHT//2, 1, 2)
+        # 3 = player2
         self.player2 = Player(BOARD_WIDTH * 3//4, BOARD_HEIGHT//2, 3, 3)
 
     def step(self, action: tuple) -> tuple:
+        """Make a move in the game environment
+
+        :param action: Tuple of player1 and player2 actions on the action space
+        :type action: tuple(int, int)
+        :return: Tuple of the board, player1 lose and player2 lose
+        :rtype: tuple(np.array, bool, bool)
+        """
+        # Make the players movement  
         self.board, lose1 = self.player1.move(self.board, action[0])
         self.board, lose2 = self.player2.move(self.board, action[1])
 
+        # Render the game if human visualization is needed
         if self.human_render:
             self.human_board.render(self.board, lose1, lose2, self.score)
 
+        # Check if the game is over
         if lose1 and lose2:
+            # Tie
             self.reset()
         elif lose1:
+            # Player2 win
             self.score = (self.score[0], self.score[1] + 1)
             self.reset()
         elif lose2:
+            # Player1 win
             self.score = (self.score[0] + 1, self.score[1])
             self.reset()
 

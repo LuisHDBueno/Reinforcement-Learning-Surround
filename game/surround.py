@@ -110,18 +110,18 @@ class Player():
         """
         # Auxiliar
         
-        def atualize_pos(x_atualization: int, y_atualization: int) -> None:
-            """Atualize the player position
+        def update_pos(x_update: int, y_update: int) -> None:
+            """update the player position
 
-            :param x_atualization: number of steps in x axis
-            :type x_atualization: int
-            :param y_atualization: number of steps in y axis
-            :type y_atualization: int
+            :param x_update: number of steps in x axis
+            :type x_update: int
+            :param y_update: number of steps in y axis
+            :type y_update: int
             """            
             board[self.pos_x, self.pos_y] = 1
 
-            self.pos_x += x_atualization
-            self.pos_y += y_atualization
+            self.pos_x += x_update
+            self.pos_y += y_update
 
             board[self.pos_x, self.pos_y] = self.value
         
@@ -135,28 +135,28 @@ class Player():
                     # If yes, continue in the same direction
                     board= self.move(board, 3)
                 else:
-                    atualize_pos(1, 0)
+                    update_pos(1, 0)
                     self.last_action = 1
 
             case 2:
                 if self.last_action == 4:
                     board = self.move(board, 4)
                 else:
-                    atualize_pos(0, 1)
+                    update_pos(0, 1)
                     self.last_action = 2
 
             case 3:
                 if self.last_action == 1:
                     board = self.move(board, 1)
                 else:
-                    atualize_pos(-1, 0)
+                    update_pos(-1, 0)
                     self.last_action = 3
 
             case 4:
                 if self.last_action == 2:
                     board = self.move(board, 2)
                 else:
-                    atualize_pos(0, -1)
+                    update_pos(0, -1)
                     self.last_action = 4
         
         return board
@@ -210,7 +210,7 @@ class Surround():
         self.player2 = Player(BOARD_WIDTH * 3//4, BOARD_HEIGHT//2, 3, 3)
 
     def check_lose(self, old_board) -> tuple:
-        """Check if one of the players lose
+        """Check if one of the players has lost
 
         :param old_board: Board before the move
         :type old_board: np.array

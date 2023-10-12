@@ -166,6 +166,68 @@ class OutOfActionSpace(Exception):
     def __init__(self) -> None:
         super().__init__("Action not in action space") 
 
+class HumanControls():
+    """Class to control the human players
+    Only works if the game was reseted
+
+    Attributes:
+        player: player to be controlled
+    Methods:
+        get_action: get the action of the player
+    """    
+    def __init__(self, n_player: int) -> None:
+        """Init the player to be controlled
+
+        :param n_player: number of the player to be controlled
+        :type n_player: int
+        """
+        if n_player == 1:
+            self.control = [self.get_action1]
+        elif n_player == 2:
+            self.control = [self.get_action1, self.get_action2]
+        else:
+            raise Exception("Invalid player number")
+        
+    def get_action1(self) -> int:
+        """Get the action of the player 1
+
+        :return: Action of the player
+        :rtype: int
+        """
+        event = pg.key.get_pressed()
+        if event[pg.K_d]:
+            return 1
+        elif event[pg.K_s]:
+            return 2
+        elif event[pg.K_a]:
+            return 3
+        elif event[pg.K_w]:
+            return 4
+        return 0
+    
+    def get_action2(self) -> int:
+        """Get the action of the player 2
+
+        :return: Action of the player
+        :rtype: int
+        """
+        event = pg.key.get_pressed()
+        if event[pg.K_RIGHT]:
+            return 1
+        elif event[pg.K_DOWN]:
+            return 2
+        elif event[pg.K_LEFT]:
+            return 3
+        elif event[pg.K_UP]:
+            return 4
+        return 0
+    
+    def get_moves(self):
+        move = []
+        for control in self.control:
+            move.append(control())
+        return move
+
 class Surround():
     f"""Surround game environment
     
@@ -182,11 +244,14 @@ class Surround():
     action_space = [0, 1, 2, 3, 4]
     score = (0, 0)
 
-    def __init__(self, human_render: bool = False, frame_rate: int = 1) -> None:
+    def __init__(self, human_render: bool = False,
+                 human_controls: int = 0, frame_rate: int = 1) -> None:
         """Init the game environment and game mode
 
         :param human_render: Needs human visualization, defaults to False
         :type human_render: bool, optional
+        :param human_controls: Number of human players, defaults to 0
+        :type human_controls: int, optional
         :param frame_rate: Frame rate for human visualization, defaults to 1
         :type frame_rate: int, optional
         """        
@@ -195,6 +260,10 @@ class Surround():
 
         if self.human_render:
             self.human_board = HumanBoard(self.frame_rate)
+        if human_controls != 0:
+            self.human_controls = HumanControls(human_controls)
+        else:
+            self.human_controls = None
 
     def reset(self) -> None:
         """Reset the game enviroment (and initialize)"""
@@ -230,7 +299,9 @@ class Surround():
     def step(self, action: tuple) -> tuple:
         """Make a move in the game environment
 
-        :param action: Tuple of player1 and player2 actions on the action space
+        :param action: Tuple of player1 and player2 actions on the action space.
+        If number of human players is 1, the second action is ignored.
+        If number of human players is 2, both actions are ignored.
         :type action: tuple(int, int)
         :return: Tuple of the board, player1 lose and player2 lose
         :rtype: tuple(np.array, bool, bool)
@@ -241,6 +312,13 @@ class Surround():
         
         old_board = self.board.copy()
 
+        if self.human_controls != None:
+            human_moves = self.human_controls.get_moves()
+            if len(human_moves) == 1:
+                action = (human_moves[0], action[1])
+            else:
+                action = human_moves
+        
         self.board = self.player1.move(self.board, action[0])
         self.board = self.player2.move(self.board, action[1])
 
@@ -280,80 +358,16 @@ class Surround():
 
         return self.board, lose1, lose2
 
-class HumanControls():
-    """Class to control the human players
-    Only works if the game was reseted
-
-    Attributes:
-        player: player to be controlled
-    Methods:
-        get_action: get the action of the player
-    """    
-    def __init__(self, n_player: int) -> None:
-        """Init the player to be controlled
-
-        :param n_player: number of the player to be controlled
-        :type n_player: int
-        """
-        if n_player == 1:
-            self.control = [self.get_action1]
-        elif n_player == 2:
-            self.control = [self.get_action1, self.get_action2]
-        else:
-            raise Exception("Invalid player number")
-        
-    def get_action1(self) -> int:
-        """Get the action of the player 1
-
-        :return: Action of the player
-        :rtype: int
-        """
-        event = pg.key.get_pressed()
-        if event[pg.K_RIGHT]:
-            return 1
-        elif event[pg.K_DOWN]:
-            return 2
-        elif event[pg.K_LEFT]:
-            return 3
-        elif event[pg.K_UP]:
-            return 4
-        return 0
-    
-    def get_action2(self) -> int:
-        """Get the action of the player 2
-
-        :return: Action of the player
-        :rtype: int
-        """
-        event = pg.key.get_pressed()
-        if event[pg.K_d]:
-            return 1
-        elif event[pg.K_s]:
-            return 2
-        elif event[pg.K_a]:
-            return 3
-        elif event[pg.K_w]:
-            return 4
-        return 0
-    
-    def get_moves(self):
-        move = []
-        for control in self.control:
-            move.append(control())
-        return move
     
 if __name__ == "__main__":
-    jogo = Surround(human_render=True, frame_rate=10)
+    jogo = Surround(human_render=True, human_controls=2, frame_rate=10)
     jogo.reset()
-    controls = HumanControls(2)
     x = 1
     tempo = time.time()
     while x < 10000:
         y = 1
         while y < 100:
-            acao = controls.get_moves()
-            print(acao)
-            board, lose_1, lose_2 = jogo.step((acao[0], acao[1]))
+            board, lose_1, lose_2 = jogo.step((0, 0))
             y += 1
         x += 1
         print(x)

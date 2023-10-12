@@ -4,6 +4,7 @@ import time
 
 BOARD_HEIGHT = 16
 BOARD_WIDTH = 16
+FONT = 30
 
 class HumanBoard():
     """Class to render the game in a pygame window
@@ -38,7 +39,7 @@ class HumanBoard():
         pg.init()
         pg.display.set_caption("Surround")
         self.screen = pg.display.set_mode((self.width, self.height))
-        self.font = pg.font.Font(None, 30)
+        self.font = pg.font.Font(None, FONT)
 
     def render(self, board: np.array, score: tuple) -> None:
         """ Render the window
@@ -70,10 +71,14 @@ class HumanBoard():
 
         :param player: _description_
         :type player: int
-        """        
-        win_text = self.font.render(f"Player {player} win!",
-                                       True, (255, 255, 255))
-        self.screen.blit(win_text, (self.width//4, self.height//2))
+        """
+        if player == 0:
+            win_text = self.font.render("Tie!", True, (255, 255, 255))
+            self.screen.blit(win_text, (self.width//2, self.height//2))
+        else:        
+            win_text = self.font.render(f"Player {player} win!",
+                                        True, (255, 255, 255))
+            self.screen.blit(win_text, (self.width//3, self.height//2))
         pg.display.update()
         time.sleep(1)
 

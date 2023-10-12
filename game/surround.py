@@ -2,8 +2,9 @@ import numpy as np
 import pygame as pg
 import time
 
-BOARD_HEIGHT = 32
-BOARD_WIDTH = 32
+BOARD_HEIGHT = 16
+BOARD_WIDTH = 16
+FONT = 30
 
 class HumanBoard():
     """Class to render the game in a pygame window
@@ -20,11 +21,12 @@ class HumanBoard():
         render: render the pygame window
         win: render the win text
         close: close the pygame window
-    """    
+    """
+    pixel_size = 20    
     colors = [[84, 92, 214], [212, 108, 195], [200, 72, 72], [183, 194, 95]]
     height_score = 30
-    height = BOARD_HEIGHT * 10 + height_score
-    width = BOARD_WIDTH * 10
+    height = BOARD_HEIGHT * pixel_size + height_score
+    width = BOARD_WIDTH * pixel_size
 
     def __init__(self, frame_rate: int) -> None:
         """Init the pygame window
@@ -37,7 +39,7 @@ class HumanBoard():
         pg.init()
         pg.display.set_caption("Surround")
         self.screen = pg.display.set_mode((self.width, self.height))
-        self.font = pg.font.Font(None, 30)
+        self.font = pg.font.Font(None, FONT)
 
     def render(self, board: np.array, score: tuple) -> None:
         """ Render the window
@@ -56,7 +58,7 @@ class HumanBoard():
             for j in range(BOARD_HEIGHT):
                 pg.draw.rect(self.screen,
                               self.colors[board[i][j]],
-                              (i * 10, j * 10 + self.height_score, 10, 10))
+                              (i * self.pixel_size, j * self.pixel_size + self.height_score, self.pixel_size, self.pixel_size))
         
         pg.display.update()
         time.sleep(1/self.frame_rate)
@@ -69,10 +71,14 @@ class HumanBoard():
 
         :param player: _description_
         :type player: int
-        """        
-        win_text = self.font.render(f"Player {player} win!",
-                                       True, (255, 255, 255))
-        self.screen.blit(win_text, (self.width//4, self.height//2))
+        """
+        if player == 0:
+            win_text = self.font.render("Tie!", True, (255, 255, 255))
+            self.screen.blit(win_text, (self.width//2, self.height//2))
+        else:        
+            win_text = self.font.render(f"Player {player} win!",
+                                        True, (255, 255, 255))
+            self.screen.blit(win_text, (self.width//3, self.height//2))
         pg.display.update()
         time.sleep(1)
 
@@ -165,6 +171,68 @@ class OutOfActionSpace(Exception):
     def __init__(self) -> None:
         super().__init__("Action not in action space") 
 
+class HumanControls():
+    """Class to control the human players
+    Only works if the game was reseted
+
+    Attributes:
+        player: player to be controlled
+    Methods:
+        get_action: get the action of the player
+    """    
+    def __init__(self, n_player: int) -> None:
+        """Init the player to be controlled
+
+        :param n_player: number of the player to be controlled
+        :type n_player: int
+        """
+        if n_player == 1:
+            self.control = [self.get_action1]
+        elif n_player == 2:
+            self.control = [self.get_action1, self.get_action2]
+        else:
+            raise Exception("Invalid player number")
+        
+    def get_action1(self) -> int:
+        """Get the action of the player 1
+
+        :return: Action of the player
+        :rtype: int
+        """
+        event = pg.key.get_pressed()
+        if event[pg.K_d]:
+            return 1
+        elif event[pg.K_s]:
+            return 2
+        elif event[pg.K_a]:
+            return 3
+        elif event[pg.K_w]:
+            return 4
+        return 0
+    
+    def get_action2(self) -> int:
+        """Get the action of the player 2
+
+        :return: Action of the player
+        :rtype: int
+        """
+        event = pg.key.get_pressed()
+        if event[pg.K_RIGHT]:
+            return 1
+        elif event[pg.K_DOWN]:
+            return 2
+        elif event[pg.K_LEFT]:
+            return 3
+        elif event[pg.K_UP]:
+            return 4
+        return 0
+    
+    def get_moves(self):
+        move = []
+        for control in self.control:
+            move.append(control())
+        return move
+
 class Surround():
     f"""Surround game environment
     
@@ -181,11 +249,14 @@ class Surround():
     action_space = [0, 1, 2, 3, 4]
     score = (0, 0)
 
-    def __init__(self, human_render: bool = False, frame_rate: int = 1) -> None:
+    def __init__(self, human_render: bool = False,
+                 human_controls: int = 0, frame_rate: int = 1) -> None:
         """Init the game environment and game mode
 
         :param human_render: Needs human visualization, defaults to False
         :type human_render: bool, optional
+        :param human_controls: Number of human players, defaults to 0
+        :type human_controls: int, optional
         :param frame_rate: Frame rate for human visualization, defaults to 1
         :type frame_rate: int, optional
         """        
@@ -194,6 +265,10 @@ class Surround():
 
         if self.human_render:
             self.human_board = HumanBoard(self.frame_rate)
+        if human_controls != 0:
+            self.human_controls = HumanControls(human_controls)
+        else:
+            self.human_controls = None
 
     def reset(self) -> None:
         """Reset the game enviroment (and initialize)"""
@@ -229,7 +304,9 @@ class Surround():
     def step(self, action: tuple) -> tuple:
         """Make a move in the game environment
 
-        :param action: Tuple of player1 and player2 actions on the action space
+        :param action: Tuple of player1 and player2 actions on the action space.
+        If number of human players is 1, the second action is ignored.
+        If number of human players is 2, both actions are ignored.
         :type action: tuple(int, int)
         :return: Tuple of the board, player1 lose and player2 lose
         :rtype: tuple(np.array, bool, bool)
@@ -240,6 +317,13 @@ class Surround():
         
         old_board = self.board.copy()
 
+        if self.human_controls != None:
+            human_moves = self.human_controls.get_moves()
+            if len(human_moves) == 1:
+                action = (human_moves[0], action[1])
+            else:
+                action = human_moves
+        
         self.board = self.player1.move(self.board, action[0])
         self.board = self.player2.move(self.board, action[1])
 
@@ -249,34 +333,48 @@ class Surround():
         if self.human_render:
             self.human_board.render(self.board, self.score)
 
-        # Check if the game is over
-        if lose1 and lose2:
-            # Tie
-            self.human_board.win(0)
-            self.reset()
-        elif lose1:
-            # Player2 win
-            self.human_board.win(2)
-            self.score = (self.score[0], self.score[1] + 1)
-            self.reset()
-        elif lose2:
-            # Player1 win
-            self.human_board.win(1)
-            self.score = (self.score[0] + 1, self.score[1])
-            self.reset()
-        print(lose1, lose2)
+            # Check if the game is over
+            if lose1 and lose2:
+                # Tie
+                self.human_board.win(0)
+                self.reset()
+            elif lose1:
+                # Player2 win
+                self.human_board.win(2)
+                self.score = (self.score[0], self.score[1] + 1)
+                self.reset()
+            elif lose2:
+                # Player1 win
+                self.human_board.win(1)
+                self.score = (self.score[0] + 1, self.score[1])
+                self.reset()
+        else:
+            if lose1 and lose2:
+                # Tie
+                self.reset()
+            elif lose1:
+                # Player2 win
+                self.score = (self.score[0], self.score[1] + 1)
+                self.reset()
+            elif lose2:
+                # Player1 win
+                self.score = (self.score[0] + 1, self.score[1])
+                self.reset()
 
         return self.board, lose1, lose2
 
+    
 if __name__ == "__main__":
-    jogo = Surround(human_render=True, frame_rate=10)
+    jogo = Surround(human_render=True, human_controls=2, frame_rate=10)
     jogo.reset()
     x = 1
-    while x < 100:
+    tempo = time.time()
+    while x < 10000:
         y = 1
         while y < 100:
-            acao = (0,1)
-            jogo.step(acao)
+            board, lose_1, lose_2 = jogo.step((0, 0))
             y += 1
         x += 1
         print(x)
+
+    print(time.time() - tempo)

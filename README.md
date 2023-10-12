@@ -20,6 +20,13 @@ This project is for the master´s course in Reinforcement Learning, ministry by 
 - [References](#references)
 
 # Introduction
+<p>
+    This project is for the master´s course in Reinforcement Learning, ministry by Flávio Codeço Coelho at FGV-EMAp. The goal is to solve the Atari game Surround (shown in the figure below) using two different algorithms. The goal is to surround the opponent snake without hitting the walls or the opponent snake. The game ends when one of the snakes hits the wall or the opponent snake.
+</p>
+
+<div align="center">
+	<img src = "report/surround_atari.png" width=40% style="border: 5px solid rgba(200, 200, 200, 0.5); border-radius: 10px"> 
+</div>
 
 # The Problem
 

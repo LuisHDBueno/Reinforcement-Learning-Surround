@@ -2,8 +2,8 @@ import numpy as np
 import pygame as pg
 import time
 
-BOARD_HEIGHT = 32
-BOARD_WIDTH = 32
+BOARD_HEIGHT = 16
+BOARD_WIDTH = 16
 
 class HumanBoard():
     """Class to render the game in a pygame window
@@ -20,11 +20,12 @@ class HumanBoard():
         render: render the pygame window
         win: render the win text
         close: close the pygame window
-    """    
+    """
+    pixel_size = 20    
     colors = [[84, 92, 214], [212, 108, 195], [200, 72, 72], [183, 194, 95]]
     height_score = 30
-    height = BOARD_HEIGHT * 10 + height_score
-    width = BOARD_WIDTH * 10
+    height = BOARD_HEIGHT * pixel_size + height_score
+    width = BOARD_WIDTH * pixel_size
 
     def __init__(self, frame_rate: int) -> None:
         """Init the pygame window
@@ -56,7 +57,7 @@ class HumanBoard():
             for j in range(BOARD_HEIGHT):
                 pg.draw.rect(self.screen,
                               self.colors[board[i][j]],
-                              (i * 10, j * 10 + self.height_score, 10, 10))
+                              (i * self.pixel_size, j * self.pixel_size + self.height_score, self.pixel_size, self.pixel_size))
         
         pg.display.update()
         time.sleep(1/self.frame_rate)
@@ -279,16 +280,80 @@ class Surround():
 
         return self.board, lose1, lose2
 
+class HumanControls():
+    """Class to control the human players
+    Only works if the game was reseted
+
+    Attributes:
+        player: player to be controlled
+    Methods:
+        get_action: get the action of the player
+    """    
+    def __init__(self, n_player: int) -> None:
+        """Init the player to be controlled
+
+        :param n_player: number of the player to be controlled
+        :type n_player: int
+        """
+        if n_player == 1:
+            self.control = [self.get_action1]
+        elif n_player == 2:
+            self.control = [self.get_action1, self.get_action2]
+        else:
+            raise Exception("Invalid player number")
+        
+    def get_action1(self) -> int:
+        """Get the action of the player 1
+
+        :return: Action of the player
+        :rtype: int
+        """
+        event = pg.key.get_pressed()
+        if event[pg.K_RIGHT]:
+            return 1
+        elif event[pg.K_DOWN]:
+            return 2
+        elif event[pg.K_LEFT]:
+            return 3
+        elif event[pg.K_UP]:
+            return 4
+        return 0
+    
+    def get_action2(self) -> int:
+        """Get the action of the player 2
+
+        :return: Action of the player
+        :rtype: int
+        """
+        event = pg.key.get_pressed()
+        if event[pg.K_d]:
+            return 1
+        elif event[pg.K_s]:
+            return 2
+        elif event[pg.K_a]:
+            return 3
+        elif event[pg.K_w]:
+            return 4
+        return 0
+    
+    def get_moves(self):
+        move = []
+        for control in self.control:
+            move.append(control())
+        return move
+    
 if __name__ == "__main__":
-    jogo = Surround(human_render=False, frame_rate=10)
+    jogo = Surround(human_render=True, frame_rate=10)
     jogo.reset()
+    controls = HumanControls(2)
     x = 1
     tempo = time.time()
     while x < 10000:
         y = 1
         while y < 100:
-            acao = (0,1)
-            jogo.step(acao)
+            acao = controls.get_moves()
+            print(acao)
+            board, lose_1, lose_2 = jogo.step((acao[0], acao[1]))
             y += 1
         x += 1
         print(x)

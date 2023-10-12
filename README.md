@@ -87,6 +87,7 @@ Each action is represented by a number from 0 to 4, as shown in the table below.
 
 ## Game Rules
 The snakes movement are based on the player perspective, so if the snake is moving to the right, the action right will be considered as the stay action.
+
 A snake can't move to the opposite direction of its current movement. For example: if the snake is moving to the right, it can't move to the left, so the action left will be considered as the stay action.
 
 # Solving the Problem

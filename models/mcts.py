@@ -1,5 +1,5 @@
 import numpy as np
-import net_model as nm
+import net_models as nm
 
 import os
 import sys

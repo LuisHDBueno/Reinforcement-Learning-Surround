@@ -16,10 +16,10 @@ def train_model(model: str, save_rate: int = 5, train_iterations: int = 100, min
     """    
     if model == 'dnn':
         agent1 = nm.DenseNet()
-        agent2 = nm.DenseNet()
+        agent2 = agent1.copy()
     else:
         agent1 = nm.ConvolutionNet()
-        agent2 = nm.ConvolutionNet()
+        agent2 = agent1.copy()
 
     win_rate_history = np.empty([0,])
     win_rate = agent1.get_win_rate(agent2)
@@ -32,14 +32,9 @@ def train_model(model: str, save_rate: int = 5, train_iterations: int = 100, min
             win_rate = agent1.get_win_rate(agent2)
             win_rate_history = np.append(win_rate_history, win_rate)
 
-            print(f'Win rate: {win_rate}')
-            agent2.train(adversary=agent1, min_win_rate=min_win_rate)
+            agent2 = agent1.copy()
 
-            win_rate = agent2.get_win_rate(agent1)
-            win_rate_history = np.append(win_rate_history, 1 - win_rate)
-
-        agent1.save(f'{model}1')
-        agent2.save(f'{model}2')
+        agent1.save(f'{model}')
 
     graph = sns.lineplot(data=win_rate_history)
     graph.set(xlabel='Trainment step', ylabel='Win rate')

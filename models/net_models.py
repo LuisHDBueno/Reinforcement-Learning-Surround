@@ -101,7 +101,7 @@ class NeuralNet():
             trainment_step = 1
 
             while win_rate < min_win_rate:
-                boards_buffer, probs_buffer = MCTS.get_buffers(self, adversary) # ATTENTION: MCTS is not implemented yet
+                boards_buffer, probs_buffer = MCTS.get_buffers(adversary) # ATTENTION: MCTS is not implemented yet
 
                 self.fit(boards_buffer, probs_buffer, epochs=10)
                 

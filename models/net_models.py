@@ -12,7 +12,60 @@ import surround as s
 BOARD_HEIGHT = s.BOARD_HEIGHT
 BOARD_WIDTH = s.BOARD_WIDTH
 
-class DenseNet():
+class NeuralNet():
+    def predict(self, board):
+        """Predict the reward distribution for each action.
+
+        :param board: Current game board
+        :type board: np.array
+        :return: Array containing the relative reward for each action, interpreted as a probability distribution
+        :rtype: np.array
+        """         
+        return self.model.predict(board)
+        
+    def train(self, boards, rewards, batch_size=64, epochs=1):
+        """Train the model with the given boards and rewards.
+
+        :param boards: Array of boards from Monte Carlo Tree Search
+        :type boards: np.array
+        :param rewards: Array of rewards from Monte Carlo Tree Search
+        :type rewards: np.array
+        :param batch_size: Size of the batch to train the model
+        :type batch_size: int
+        :param epochs: Number of trainment epochs, defaults to 1
+        :type epochs: int, optional
+        """
+        self.model.fit(boards, rewards, batch_size=batch_size, epochs=epochs, verbose=0)
+
+    def play(self, board):
+        """Choose the best action to play.
+
+        :param board: Current game board
+        :type board: np.array
+        :return: Best action to play
+        :rtype: int
+        """            
+        best_action = np.argmax(self.predict(board))
+        return best_action + 1
+        
+    def save(self, file_name):
+        """Save the model.
+
+        :param file_name: Name of the file to save the model
+        :type file_name: str
+        """            
+        self.model.save(f'./saved_models/{file_name}.keras')
+
+    def load(self, file_name):
+        """Load pre-trained model.
+
+        :param file_name: Name of the file to load the model
+        :type file_name: str
+        """            
+        self.model = tf.keras.models.load_model(f'./saved_models/{file_name}.keras')
+
+
+class DenseNet(NeuralNet):
     
     def __init__(self,  n_layers: int = 5, n_neurons: int = 256, learning_rate: float = 0.01,
                 input_shape: tuple = (BOARD_WIDTH, BOARD_HEIGHT, 3)) -> None:
@@ -35,7 +88,7 @@ class DenseNet():
             self.model.add(Dense(n_neurons, activation='relu',
                                   kernel_regularizer = tf.keras.regularizers.l2(0.01)))
         # Output layer
-        self.model.add(Dense(5, activation='softmax'))
+        self.model.add(Dense(4, activation='softmax'))
         
         # Optimizer
         optimizer = tf.keras.optimizers.Adam(learning_rate = learning_rate)
@@ -43,7 +96,7 @@ class DenseNet():
                             loss="mean_squared_error",
                             metrics=[tf.keras.metrics.RootMeanSquaredError()])
 
-class ConvulutionNet():
+class ConvolutionNet(NeuralNet):
 
     def __init__(self, n_conv_layers: int = 6, n_dense_layers: int = 3, n_neurons: int = 256,
                 learning_rate: float = 0.01, input_shape: tuple = (BOARD_WIDTH, BOARD_HEIGHT, 3)) -> None:
@@ -62,7 +115,7 @@ class ConvulutionNet():
         """
 
         self.model = Sequential()
-        for _ in range(n_conv_layers //2 ):
+        for _ in range(n_conv_layers // 2):
             self.model.add(Conv2D(32, (4, 4), activation='relu', padding='same',
                                    input_shape = input_shape,
                                    kernel_regularizer=tf.keras.regularizers.l2(0.01)))
@@ -82,7 +135,7 @@ class ConvulutionNet():
                                   kernel_regularizer = tf.keras.regularizers.l2(0.01)))
         
         # Output layer
-        self.model.add(Dense(5, activation='softmax'))
+        self.model.add(Dense(4, activation='softmax'))
         optimizer = tf.keras.optimizers.Adam(learning_rate = learning_rate)
         self.model.compile(optimizer=optimizer, loss="mean_squared_error",
                             metrics=[tf.keras.metrics.RootMeanSquaredError()])

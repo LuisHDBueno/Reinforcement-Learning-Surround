@@ -400,17 +400,14 @@ class Surround():
 
     
 if __name__ == "__main__":
-    jogo = Surround(human_render=True, human_controls=2, frame_rate=10)
+    jogo = Surround(human_render=True, human_controls=1, frame_rate=5)
     jogo.reset()
-    x = 1
-    tempo = time.time()
-    while x < 10000:
-        y = 1
-        while y < 100:
-            reward, old_board, board, lose1, lose2 = jogo.step((0, 0))
-            print(reward, lose1, lose2)
-            y += 1
-        x += 1
-        print(x)
 
-    print(time.time() - tempo)
+    for _ in range(10):
+        while True:
+            retorno = np.random.randint(5)
+            reward, old_board, board, lose1, lose2 = jogo.step((0, retorno))
+            print(reward, lose1, lose2)
+            
+            if lose1 or lose2:
+                break

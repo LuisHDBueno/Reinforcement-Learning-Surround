@@ -27,10 +27,10 @@ def train_model(model: str, save_rate: int = 5, train_iterations: int = 100, min
 
     for _ in range(train_iterations / save_rate):
         for _ in range(save_rate):
-            agent1.train(adversary=agent2, min_win_rate=min_win_rate)
-
+            train_win_rate_history = agent1.train(adversary=agent2, min_win_rate=min_win_rate)
+            win_rate_history = np.append(win_rate_history, train_win_rate_history)
+            
             win_rate = agent1.get_win_rate(agent2)
-            win_rate_history = np.append(win_rate_history, win_rate)
 
             agent2 = agent1.copy()
 

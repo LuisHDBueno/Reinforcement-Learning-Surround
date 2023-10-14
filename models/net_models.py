@@ -89,15 +89,22 @@ class NeuralNet():
         :type probs_buffer: np.array
         :param adversary: _description_
         :type adversary: NeuralNet
+        :return: Win rate history
+        :rtype: np.array
         """        
         win_rate = self.get_win_rate(adversary)
 
         if win_rate > min_win_rate:
             print(f'Win rate: {win_rate}')
             print("Win rate already satisfactory, skipping trainment...")
+
+            return np.array([win_rate])
         else:
+            win_rate_history = np.empty([win_rate])
+        
             print(f'Win rate: {win_rate}')
             print("Trainment needed, proceding to trainment...")
+
             trainment_step = 1
 
             while win_rate < min_win_rate:
@@ -106,9 +113,13 @@ class NeuralNet():
                 self.fit(boards_buffer, probs_buffer, epochs=10)
                 
                 win_rate = self.get_win_rate(adversary)
+                win_rate_history = np.append(win_rate_history, win_rate)
+
                 print(f'Win rate: {win_rate}')
                 print("Trainment step:", trainment_step)
                 trainment_step += 1
+            
+            return win_rate_history
         
     def save(self, file_name: str) -> None:
         """Save the model.

@@ -1,6 +1,7 @@
 import numpy as np
 import pygame as pg
 import time
+import math
 
 BOARD_HEIGHT = 16
 BOARD_WIDTH = 16
@@ -397,6 +398,78 @@ class Surround():
                 reward = 0
 
         return reward, old_board, self.board, lose1, lose2
+
+class Encoding:
+    """Class to encode and decode the game state
+    """
+    def __init__(self) -> None:
+        pass
+
+    def encode(self, board: np.array) -> int:
+        """Encode the board into a int
+
+        :param board: Board of the game
+        :type board: np.array
+        :return: Int representing the board
+        :rtype: int
+        """
+        # Convert matrices to binary strings
+        game_state_bits = board[:,:,0][1:-1,1:-1].flatten().astype(np.uint8)
+        player1 = np.nonzero(board[:,:,1])
+        player2 = np.nonzero(board[:,:,2])
+        player1x, player1y = player1[0][0], player1[1][0]
+        player2x, player2y = player2[0][0], player2[1][0]
+        pos_size = math.ceil(np.log2(BOARD_WIDTH))
+        player1x_bits = np.binary_repr(player1x, width=pos_size)
+        player1y_bits = np.binary_repr(player1y, width=pos_size)
+        player2x_bits = np.binary_repr(player2x, width=pos_size)
+        player2y_bits = np.binary_repr(player2y, width=pos_size)
+        # Combine game state and player positions into a single binary string
+        encoded_bits = np.zeros((len(game_state_bits) + pos_size * 4,), dtype=np.uint8)
+        board_size = (BOARD_WIDTH - 2)*(BOARD_HEIGHT-2)
+        encoded_bits[board_size-len(game_state_bits):board_size] = game_state_bits
+        encoded_bits[board_size:board_size+pos_size] |= np.array(list(player1x_bits), dtype=np.uint8)
+        encoded_bits[board_size+pos_size:board_size+2*pos_size] |= np.array(list(player1y_bits), dtype=np.uint8)
+        encoded_bits[board_size+2*pos_size:board_size+3*pos_size]  |= np.array(list(player2x_bits), dtype=np.uint8)
+        encoded_bits[board_size+3*pos_size:]  |= np.array(list(player2y_bits), dtype=np.uint8)
+        encoded_int = encoded_int = int(''.join(map(str, encoded_bits.tolist())), 2)
+        return encoded_int
+
+    def decode(self, state_int: int) -> np.array:
+        """Decode the int into a board
+
+        :param state_int: Int representing the board
+        :type state_int: int
+        :return: Board of the game
+        :rtype: np.array
+        """
+        binary_str = bin(state_int)[2:]
+        pos_size = math.ceil(np.log2(BOARD_WIDTH))
+        board_size = (BOARD_WIDTH - 2)*(BOARD_HEIGHT-2)
+        binary_str = '0'*(board_size + pos_size*4 - len(binary_str)) + binary_str
+        game_state_str = binary_str[:board_size]
+        player1x = binary_str[board_size:
+                            board_size+pos_size]
+        player1y = binary_str[board_size+pos_size:
+                            board_size+2*pos_size]
+        player2x = binary_str[board_size+2*pos_size:
+                            board_size+3*pos_size]
+        player2y = binary_str[board_size+3*pos_size:]
+
+        # Convert game state string to matrix with and added border of ones
+        game_state = np.ones((BOARD_WIDTH, BOARD_HEIGHT), dtype=np.bool_)
+        game_state[1:-1,1:-1] = np.array(list(map(int, game_state_str))).reshape(BOARD_WIDTH-2, BOARD_HEIGHT-2)
+
+        # Convert player positions to matrix
+        player1 = np.zeros((BOARD_WIDTH, BOARD_HEIGHT), dtype=np.bool_)
+        player1[int(player1x, 2), int(player1y, 2)] = 1
+        player2 = np.zeros((BOARD_WIDTH, BOARD_HEIGHT), dtype=np.bool_)
+        player2[int(player2x, 2), int(player2y, 2)] = 1
+
+        # Concatenate matrices
+        board = np.stack((game_state, player1, player2), axis=2)
+
+        return board
 
     
 if __name__ == "__main__":

@@ -13,7 +13,7 @@ BOARD_HEIGHT = s.BOARD_HEIGHT
 BOARD_WIDTH = s.BOARD_WIDTH
 
 class NeuralNet():
-    def predict(self, board):
+    def predict(self, board: np.array) -> np.array:
         """Predict the reward distribution for each action.
 
         :param board: Current game board
@@ -23,21 +23,21 @@ class NeuralNet():
         """         
         return self.model.predict(board)
         
-    def train(self, boards, rewards, batch_size=64, epochs=1):
-        """Train the model with the given boards and rewards.
+    def fit(self, boards: np.array, rewards: np.array, batch_size: int = 64, epochs: int = 1) -> None:
+        """Fit the model with the given boards and rewards.
 
         :param boards: Array of boards from Monte Carlo Tree Search
         :type boards: np.array
         :param rewards: Array of rewards from Monte Carlo Tree Search
         :type rewards: np.array
-        :param batch_size: Size of the batch to train the model
+        :param batch_size: Size of the batch to fit the model
         :type batch_size: int
         :param epochs: Number of trainment epochs, defaults to 1
         :type epochs: int, optional
         """
         self.model.fit(boards, rewards, batch_size=batch_size, epochs=epochs, verbose=0)
 
-    def play(self, board):
+    def play(self, board: np.array) -> int:
         """Choose the best action to play.
 
         :param board: Current game board
@@ -47,8 +47,68 @@ class NeuralNet():
         """            
         best_action = np.argmax(self.predict(board))
         return best_action + 1
+    
+    def get_win_rate(self, adversary: 'NeuralNet') -> float:
+        """Get the win rate of the model against a fixed adversary.
+
+        :param adversary: Neural network to play against
+        :type adversary: NeuralNet
+        :return: Win rate of the model against the adversary
+        :rtype: float
+        """
+        win_history = np.empty([0,])
+        game = s.Surround(human_controls=0)
+        game.reset()
         
-    def save(self, file_name):
+        for _ in range(50):
+            while True:
+                model_action = self.play(game.board)
+                adversary_action = adversary.play(game.board)
+                _, _, _, lose1, lose2 = game.step((model_action, adversary_action))
+                
+                if lose1 and lose2:
+                    win_history = np.append(win_history, 0)
+                    break
+                elif lose1:
+                    win_history = np.append(win_history, -1)
+                    break
+                elif lose2:
+                    win_history = np.append(win_history, 1)
+                    break
+
+        return win_history.mean()      
+    
+    def train(self, adversary: 'NeuralNet', min_win_rate: int = 0.6) -> None: # ATTENTION: docstring must be updated
+        """Train the model until it reaches a win rate of 0.55 against the adversary.
+
+        :param boards_buffer: _description_
+        :type boards_buffer: np.array
+        :param probs_buffer: _description_
+        :type probs_buffer: np.array
+        :param adversary: _description_
+        :type adversary: NeuralNet
+        """        
+        win_rate = self.get_win_rate(adversary)
+
+        if win_rate > min_win_rate:
+            print(f'Win rate: {win_rate}')
+            print("Win rate already satisfactory, skipping trainment...")
+        else:
+            print(f'Win rate: {win_rate}')
+            print("Trainment needed, proceding to trainment...")
+            trainment_step = 1
+
+            while win_rate < min_win_rate:
+                boards_buffer, probs_buffer = MCTS.get_buffers(self, adversary) # ATTENTION: MCTS is not implemented yet
+
+                self.fit(boards_buffer, probs_buffer, epochs=10)
+                
+                win_rate = self.get_win_rate(adversary)
+                print(f'Win rate: {win_rate}')
+                print("Trainment step:", trainment_step)
+                trainment_step += 1
+        
+    def save(self, file_name: str) -> None:
         """Save the model.
 
         :param file_name: Name of the file to save the model
@@ -56,7 +116,7 @@ class NeuralNet():
         """            
         self.model.save(f'./saved_models/{file_name}.keras')
 
-    def load(self, file_name):
+    def load(self, file_name: str) -> None:
         """Load pre-trained model.
 
         :param file_name: Name of the file to load the model
@@ -64,9 +124,7 @@ class NeuralNet():
         """            
         self.model = tf.keras.models.load_model(f'./saved_models/{file_name}.keras')
 
-
 class DenseNet(NeuralNet):
-    
     def __init__(self,  n_layers: int = 5, n_neurons: int = 256, learning_rate: float = 0.01,
                 input_shape: tuple = (BOARD_WIDTH, BOARD_HEIGHT, 3)) -> None:
         """Generate a dense neural network with n_layers hidden layers and 256 neurons per layer.
@@ -97,7 +155,6 @@ class DenseNet(NeuralNet):
                             metrics=[tf.keras.metrics.RootMeanSquaredError()])
 
 class ConvolutionNet(NeuralNet):
-
     def __init__(self, n_conv_layers: int = 6, n_dense_layers: int = 3, n_neurons: int = 256,
                 learning_rate: float = 0.01, input_shape: tuple = (BOARD_WIDTH, BOARD_HEIGHT, 3)) -> None:
         """Generate a convolutional neural network with n_layers hidden layers and 256 neurons per layer.

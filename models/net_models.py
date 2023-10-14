@@ -48,19 +48,21 @@ class NeuralNet():
         best_action = np.argmax(self.predict(board))
         return best_action + 1
     
-    def get_win_rate(self, adversary: 'NeuralNet') -> float:
+    def get_win_rate(self, adversary: 'NeuralNet', num_games: int = 50) -> float:
         """Get the win rate of the model against a fixed adversary.
 
         :param adversary: Neural network to play against
         :type adversary: NeuralNet
         :return: Win rate of the model against the adversary
         :rtype: float
+        :param num_games: Number of games to play, defaults to 50
+        :type num_games: int, optional
         """
         win_history = np.empty([0,])
         game = s.Surround(human_controls=0)
         game.reset()
         
-        for _ in range(50):
+        for _ in range(num_games):
             while True:
                 model_action = self.play(game.board)
                 adversary_action = adversary.play(game.board)

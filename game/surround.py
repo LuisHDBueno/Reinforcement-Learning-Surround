@@ -57,8 +57,28 @@ class HumanBoard():
         for i in range(BOARD_WIDTH):
             for j in range(BOARD_HEIGHT):
                 pg.draw.rect(self.screen,
-                              self.colors[board[i][j]],
-                              (i * self.pixel_size, j * self.pixel_size + self.height_score, self.pixel_size, self.pixel_size))
+                              self.colors[0],
+                              (i * self.pixel_size,
+                                j * self.pixel_size + self.height_score,
+                                self.pixel_size, self.pixel_size))
+                if board[i, j, 0] == 1:
+                    pg.draw.rect(self.screen,
+                                  self.colors[1],
+                                  (i * self.pixel_size,
+                                    j * self.pixel_size + self.height_score,
+                                    self.pixel_size, self.pixel_size))
+                if board[i, j, 1] == 1:
+                    pg.draw.rect(self.screen,
+                                  self.colors[2],
+                                  (i * self.pixel_size,
+                                    j * self.pixel_size + self.height_score,
+                                    self.pixel_size, self.pixel_size))
+                if board[i, j, 2] == 1:
+                    pg.draw.rect(self.screen,
+                                  self.colors[3],
+                                  (i * self.pixel_size,
+                                    j * self.pixel_size + self.height_score,
+                                    self.pixel_size, self.pixel_size))
         
         pg.display.update()
         time.sleep(1/self.frame_rate)
@@ -87,21 +107,20 @@ class HumanBoard():
         pg.quit()
     
 class Player():
-    def __init__(self, pos_x: int, pos_y: int, init_action: int, value: int) -> None:
+    def __init__(self, pos_x: int, pos_y: int, layer: int, init_action: int) -> None:
         f""" Init a player
 
         :param pos_x: Init x position, between 0 and {BOARD_WIDTH - 1}
         :type pos_x: int
         :param pos_y: Init y position, between 0 and {BOARD_HEIGHT - 1}
         :type pos_y: int
+        :param layer: Layer of the player in the board, 1 = player1, 2 = player2
         :param init_action: Init action, 1 = right, 2 = up, 3 = left, 4 = down
         :type init_action: int
-        :param value: Value of the player
-        :type value: int
         """        
-        self.value = value
         self.pos_x = pos_x
         self.pos_y = pos_y
+        self.layer = layer
         self.last_action = init_action
 
     def move(self, board: np.array, action: int) -> tuple:
@@ -123,13 +142,17 @@ class Player():
             :type x_atualization: int
             :param y_atualization: number of steps in y axis
             :type y_atualization: int
-            """            
-            board[self.pos_x, self.pos_y] = 1
+            """
+            # Fild the wall layer            
+            board[self.pos_x, self.pos_y, 0] = 1
+
+            # Update the player position
+            board[self.pos_x, self.pos_y, self.layer] = 0
 
             self.pos_x += x_atualization
             self.pos_y += y_atualization
 
-            board[self.pos_x, self.pos_y] = self.value
+            board[self.pos_x, self.pos_y, self.layer] = 1
         
         match action:
             case 0:
@@ -239,7 +262,9 @@ class Surround():
     Attributes:
         action_space: list of possible actions (0 = stay, 1 = right, 2 = up, 3 = left, 4 = down)
         score: tuple of player1 and player2 score
-        board: numpy array ({BOARD_WIDTH}, {BOARD_HEIGHT}) of the board
+        board: numpy array ({BOARD_WIDTH}, {BOARD_HEIGHT}, 3) of the board.
+        First dimension is for the x axis, second for the y axis and third for
+        the elements wall, player1 and player2 (in this order)
         player1: player1 object
         player2: player2 object
     Methods:
@@ -273,16 +298,16 @@ class Surround():
     def reset(self) -> None:
         """Reset the game enviroment (and initialize)"""
         # 0 = empty
-        self.board = np.zeros((BOARD_WIDTH, BOARD_HEIGHT), dtype = int)
-        # 1 = wall
-        self.board[0, :] = 1
-        self.board[BOARD_WIDTH - 1, :] = 1
-        self.board[:, 0] = 1
-        self.board[:, BOARD_HEIGHT - 1] = 1
-        # 2 = player1
-        self.player1 = Player(BOARD_WIDTH * 1//4, BOARD_HEIGHT//2, 1, 2)
-        # 3 = player2
-        self.player2 = Player(BOARD_WIDTH * 3//4, BOARD_HEIGHT//2, 3, 3)
+        self.board = np.zeros((BOARD_WIDTH, BOARD_HEIGHT, 3), dtype = np.bool_)
+        # First layer is the walls
+        self.board[0, : , 0] = 1
+        self.board[BOARD_WIDTH - 1, : , 0] = 1
+        self.board[ : , 0, 0] = 1
+        self.board[ : , BOARD_HEIGHT - 1, 0] = 1
+        # Second layer is the player 1
+        self.player1 = Player(BOARD_WIDTH * 1//4, BOARD_HEIGHT//2, 1, 1)
+        # Third layer is the player 2
+        self.player2 = Player(BOARD_WIDTH * 3//4, BOARD_HEIGHT//2, 2, 3)
 
     def check_lose(self, old_board) -> tuple:
         """Check if one of the players lose
@@ -295,9 +320,9 @@ class Surround():
         lose1 = False
         lose2 = False
 
-        if old_board[self.player1.pos_x, self.player1.pos_y] != 0:
+        if old_board[self.player1.pos_x, self.player1.pos_y, 0] != 0:
             lose1 = True
-        if old_board[self.player2.pos_x, self.player2.pos_y] != 0:
+        if old_board[self.player2.pos_x, self.player2.pos_y, 0] != 0:
             lose2 = True
         return lose1, lose2
 
@@ -338,30 +363,40 @@ class Surround():
                 # Tie
                 self.human_board.win(0)
                 self.reset()
+                reward = -10
             elif lose1:
                 # Player2 win
                 self.human_board.win(2)
                 self.score = (self.score[0], self.score[1] + 1)
                 self.reset()
+                reward = -100
             elif lose2:
                 # Player1 win
                 self.human_board.win(1)
                 self.score = (self.score[0] + 1, self.score[1])
                 self.reset()
+                reward = 100
+            else:
+                reward = 0
         else:
             if lose1 and lose2:
                 # Tie
                 self.reset()
+                reward = -10
             elif lose1:
                 # Player2 win
                 self.score = (self.score[0], self.score[1] + 1)
                 self.reset()
+                reward = -100
             elif lose2:
                 # Player1 win
                 self.score = (self.score[0] + 1, self.score[1])
                 self.reset()
+                reward = 100
+            else:
+                reward = 0
 
-        return self.board, lose1, lose2
+        return reward, old_board, self.board, lose1, lose2
 
     
 if __name__ == "__main__":
@@ -372,7 +407,8 @@ if __name__ == "__main__":
     while x < 10000:
         y = 1
         while y < 100:
-            board, lose_1, lose_2 = jogo.step((0, 0))
+            reward, old_board, board, lose1, lose2 = jogo.step((0, 0))
+            print(reward, lose1, lose2)
             y += 1
         x += 1
         print(x)

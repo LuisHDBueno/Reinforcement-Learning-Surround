@@ -268,6 +268,11 @@ class Surround():
         the elements wall, player1 and player2 (in this order)
         player1: player1 object
         player2: player2 object
+        human_render: Needs human visualization
+        human_controls: Number of human players
+        frame_rate: Frame rate for human visualization
+        lose1: If player1 lose
+        lose2: If player2 lose
     Methods:
         reset: reset the game environment
         step: make a move in the game environment
@@ -288,6 +293,8 @@ class Surround():
         """        
         self.human_render = human_render
         self.frame_rate = frame_rate
+        self.lose1 = False
+        self.lose2 = False
 
         if self.human_render:
             self.human_board = HumanBoard(self.frame_rate)
@@ -396,7 +403,8 @@ class Surround():
                 reward = 100
             else:
                 reward = 0
-
+        self.lose1 = lose1
+        self.lose2 = lose2
         return reward, old_board, self.board, lose1, lose2
 
 class Encoding:

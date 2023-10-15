@@ -4,7 +4,8 @@ from collections import Iterable
 from copy import deepcopy
 import sys
 import os
-
+import random
+import time
 sys.path.append(os.path.join(os.path.dirname(__file__), '../game'))
 import surround as s
 
@@ -72,17 +73,164 @@ class Node:
 
 
 class MCTS:
-    def __init__(self,jogo = None):
+    def __init__(self,game = None):
     
-        if jogo == None:
-            jogo = s.Surround()
-            jogo.reset()
-        self.jogo= jogo
+        if game == None:
+            game = s.Surround()
+            game.reset()
+        self.game= game
         self.root = Node((0,0),None)
         self.run_time = 0
         self.node_count = 0
         self.num_rollout = 0
 
-    def select_node(self):
+    def legal_moves(game: s.Surround) -> list[tuple[int]]:
+        """returns a list of legal moves for both players
+
+        :param game: game state
+        :type game: s.Surround
+        :return: list of legal moves for both players
+        :rtype: list[tuple[int]]
+        """        
+        board = game.board[:,:,0]
+        player1 = game.player1.pos_x, game.player1.pos_y
+        player2 = game.player2.pos_x, game.player2.pos_y
+        moves1 = []
+        moves2 = []
+        if not board[player1[0]+1, player1[1]]: moves1.append(1)
+        if not board[player1[0], player1[1]+1]: moves1.append(2)
+        if not board[player1[0]-1, player1[1]]: moves1.append(3)
+        if not board[player1[0], player1[1]-1]: moves1.append(4)
+
+        if not board[player2[0]+1, player2[1]]: moves1.append(1)
+        if not board[player2[0], player2[1]+1]: moves1.append(2)
+        if not board[player2[0]-1, player2[1]]: moves1.append(3)
+        if not board[player2[0], player2[1]-1]: moves1.append(4)
+        
+        return [(move1,move2) for move1 in moves1 for move2 in moves2]
+    
+    def game_over(self, game: s.Surround) -> bool:
+        """chech if game is over
+
+        :param game: game state
+        :type game: s.Surround
+        :return: True if game is over, False otherwise
+        :rtype: bool
+        """        
+        lose1, lose2, _ = game.game_state()
+        if lose1 or lose2:
+            return False
+        return True
+    
+    def expand(self, parent: Node, game: s.Surround) -> bool:
+        """expand the tree adding all possible actions from the current state
+
+        :param parent: parent node
+        :type parent: Node
+        :param game: game state
+        :type game: s.Surround
+        :return: True if the game is not over, False otherwise
+        :rtype: bool
+        """        
+        if self.game_over(game):
+            return False
+        
+        children = [Node(move,parent) for move in self.legal_moves(game)]
+        parent.add_children(children)
+
+        return True
+    
+    def select_node(self) -> tuple[Node,s.Surround]:
+        """select a node to expand
+
+        :return: node to expand, game state
+        :rtype: tuple[Node,s.Surround]
+        """        
         node = self.root
-        jogo = 
+        game = deepcopy(self.game)
+
+        while len(node.children):
+            children = node.children.values()
+            max_value1 = max(children, key=lambda child: child.value()[0]).value()[0]
+            max_value2 = max(children, key=lambda child: child.value()[1]).value()[1]
+            max_nodes = [child for child in children if child.value() == (max_value1,max_value2)]
+            node = random.choice(max_nodes)
+            game.step(node.move)
+
+            if node.N == 0:
+                return node, game
+        
+        if self.expand(node, game):
+            node = random.choice(list(node.children.values()))
+            game.step(node.move)
+        
+        return node, game
+
+    def roll_out(self, game: s.Surround) -> int:
+        """roll out the game until the end
+
+        :param game: game state
+        :type game: s.Surround
+        :return: outcome of the game
+        :rtype: int
+        """        
+        lose1, lose2, = False, False
+        while not lose1 and not lose2:
+            _,_,_,lose1,lose2 = game.step(random.choice(self.legal_moves(game)))
+        
+        return [int(not lose1), int(not lose2)]
+    
+    def back_propagate(self, node: Node, outcome: tuple[int]) -> None:
+        """back propagate the outcome of the game
+
+        :param node: node to back propagate
+        :type node: Node
+        :param outcome: outcome of the game
+        :type outcome: tuple[int]
+        """        
+        while node is not None:
+            node.N += 1
+            node.Q += outcome
+            node = node.parent
+        
+    def search(self, time_budget: float = 1) -> None:
+        """search for the best move
+
+        :param time_budget: time budget in seconds, defaults to 1
+        :type time_budget: float, optional
+        :return: best move, time used
+        :rtype: tuple[tuple[int],float]
+        """        
+        start_time = time.process_time()
+        while time.process_time() - start_time < time_budget:
+            node, game = self.select_node()
+            outcome = self.roll_out(game)
+            self.back_propagate(node, outcome)
+            self.num_rollout += 1
+        self.run_time = time.process_time() - start_time
+    
+    def best_move(self):
+        """return the best move
+
+        :return: best move
+        :rtype: _type_
+        """        
+        if self.root_state.game_over():
+            return -1
+        
+        max_value = max(self.root.children.values(), key=lambda child: child.N).N
+        max_nodes = [n for n in self.root.children.values() if n.N == max_value]
+        best_child = random.choice(max_nodes)
+
+        return best_child.move
+    
+    def move(self, move):
+        if move in self.root.children:
+            self.root_state.move(move)
+            self.root = self.root.children[move]
+            return
+        
+        self.root_state.move(move)
+        self.root = Node(None, None)
+
+    def statistics(self) -> tuple[int,float]:

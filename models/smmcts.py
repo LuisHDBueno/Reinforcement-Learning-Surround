@@ -66,7 +66,7 @@ class Node:
         :rtype: tuple(float,float)
         """        
 
-        return (self.ucb1(0),self.ucb(1))
+        return (self.ucb1(0),self.ucb1(1))
 
         
 
@@ -78,9 +78,8 @@ class MCTS:
         if game == None:
             game = s.Surround()
             game.reset()
-        self.game= game
+        self.root_game= game
         self.root = Node((0,0),None)
-        self.run_time = 0
         self.node_count = 0
         self.num_rollout = 0
 
@@ -117,7 +116,7 @@ class MCTS:
         :return: True if game is over, False otherwise
         :rtype: bool
         """        
-        lose1, lose2, _ = game.game_state()
+        lose1, lose2,  = game.lose1, game.lose2
         if lose1 or lose2:
             return False
         return True
@@ -147,7 +146,7 @@ class MCTS:
         :rtype: tuple[Node,s.Surround]
         """        
         node = self.root
-        game = deepcopy(self.game)
+        game = deepcopy(self.root_game)
 
         while len(node.children):
             children = node.children.values()
@@ -187,50 +186,36 @@ class MCTS:
         :type node: Node
         :param outcome: outcome of the game
         :type outcome: tuple[int]
-        """        
+        """   
+
         while node is not None:
             node.N += 1
             node.Q += outcome
             node = node.parent
         
-    def search(self, time_budget: float = 1) -> None:
-        """search for the best move
+    def search(self, count: int) -> None:
+        """Grow tree
 
-        :param time_budget: time budget in seconds, defaults to 1
-        :type time_budget: float, optional
+        :param count: number of times to perform tree growth, defaults to 50
+        :type count: int, optional
         :return: best move, time used
         :rtype: tuple[tuple[int],float]
         """        
-        start_time = time.process_time()
-        while time.process_time() - start_time < time_budget:
+        
+        for _ in range(count):
             node, game = self.select_node()
             outcome = self.roll_out(game)
             self.back_propagate(node, outcome)
             self.num_rollout += 1
-        self.run_time = time.process_time() - start_time
-    
-    def best_move(self):
-        """return the best move
-
-        :return: best move
-        :rtype: _type_
-        """        
-        if self.root_state.game_over():
-            return -1
         
-        max_value = max(self.root.children.values(), key=lambda child: child.N).N
-        max_nodes = [n for n in self.root.children.values() if n.N == max_value]
-        best_child = random.choice(max_nodes)
-
-        return best_child.move
+    
     
     def move(self, move):
         if move in self.root.children:
-            self.root_state.move(move)
+            self.root_game.step(move)
             self.root = self.root.children[move]
             return
         
-        self.root_state.move(move)
+        self.root_game.step(move)
         self.root = Node(None, None)
 
-    def statistics(self) -> tuple[int,float]:

@@ -1,5 +1,5 @@
 # Reinforcement-Learning-Surround
-This project is for the master´s course in Reinforcement Learning, ministry by Flávio Codeço Coelho at FGV-EMAp
+This project is the final evaluation for the Reinforcement Learning master´s course subject, conducted by Professor Flávio Codeço Coelho at FGV-EMAp.
 
 # Summary
 
@@ -23,7 +23,7 @@ This project is for the master´s course in Reinforcement Learning, ministry by 
 
 # The Problem
 
-The goal is to solve the Atari game Surround (shown in the figure below) using two different algorithms. The goal is to surround the opponent snake without hitting the walls or the opponent snake. The game ends when one of the snakes hits the wall or the opponent snake.
+The aim of this project is to solve the Atari game Surround (shown in the figure below) using two different algorithms. The game starts with both players moving towards each other. As they move, they leave trails behind, until one of the snakes tries to move into an already occupied position. The goal is to surround the opponent snake without hitting the walls or the opponent snake.
 
 
 <div align="center">
@@ -34,11 +34,15 @@ The goal is to solve the Atari game Surround (shown in the figure below) using t
 
 The enviroment used in the original Surround game is a 11 x 11 grid where two snakes move around, leaving a trail behind them. On the Atari 2600 version, just one player controls the snake and the other snake is controlled by the computer. 
 
-The version used in this project is a 16 x 16 grid where the two snakes are controlled by the users inputs (describe in <a href="#usage-guide">Usage Guide</a>).
+The version used in this project is a 16 x 16 grid where the two snakes are controlled by the users' inputs (as described in <a href="#usage-guide">Usage Guide</a>).
 
 ## Observation Space
 
-The observation space is a 16 x 16 x 3 matrix where each layer is filled with 0 for nothing and 1 for objects. The first layer is filled with 1 for the walls, the second layer is filled with 1 for the player 1 snake and the third layer is filled with 1 for the player 2 snake.
+The observation space is a 16 x 16 x 3 boolean matrix where each layer carries information about the game state. The first layer represents the walls, the second layer represents the first player's snake and the third layer represents the second player's snake. The figure below shows an example of the observation space.
+
+<div align="center">
+	<img src = "report/board_to_matrix.png" width=40%> 
+</div>
 
 ## Action Space
 Each action is represented by a number from 0 to 4, as shown in the table below.
@@ -49,7 +53,7 @@ Each action is represented by a number from 0 to 4, as shown in the table below.
     <th>Value</th> <th>Meaning</th>
   </tr>
   <tr>
-    <td>0</td> <td>stay</td>
+    <td>0</td> <td>continue</td>
   </tr>
   <tr>
     <td>1</td> <td>right</td>
@@ -67,13 +71,14 @@ Each action is represented by a number from 0 to 4, as shown in the table below.
 </div>
 
 ## Game Rules
-The snakes movement are based on the player perspective, so if the snake is moving to the right, the action right will be considered as the stay action.
+The snakes' movements are based on the board's perspective, so pressing the up arrow key will make the snake go up on the board no matter its current direction.
 
-A snake can't move to the opposite direction of its current movement. For example: if the snake is moving to the right, it can't move to the left, so the action left will be considered as the stay action.
+Notice that, at each moment, the snake can't move to the opposite direction of its current movement. For instance, if the snake is moving to the right, it can't move to the left, so the action left will be considered as the continue action, which is equivalent to going to the right.
 
 # Solving the Problem
+We implemented two variations of an AlphaGo-like approach to solve the problem, using Monte Carlo Tree Search (MCTS) and a neural network to evaluate the states. The first variation uses a simple dense neural network to evaluate the states, while the second variation uses a convolutional neural network (CNN).
 
-## 1 Algorithm
+## Algorithm 1
 
 ### Training
 
@@ -81,7 +86,7 @@ A snake can't move to the opposite direction of its current movement. For exampl
 
 ### Results
 
-## 2 Algorithm
+## Algorithm 2
 
 ### Training
 

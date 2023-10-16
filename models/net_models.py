@@ -1,6 +1,7 @@
 import numpy as np
 import tensorflow as tf
 from keras.models import Sequential
+import smmcts as m
 from keras.layers import Conv2D, MaxPool2D, Flatten, Dense
 import os
 import sys
@@ -48,26 +49,35 @@ class NeuralNet():
         best_action = np.argmax(self.predict(board))
         return best_action + 1
     
-    def get_win_rate(self, adversary: 'NeuralNet', num_games: int = 50) -> float:
+    def get_win_rate(self, adversary: 'NeuralNet',mcts: m.MCTS = None, num_games: int = 50, search_count: int = 1000) -> float:
         """Get the win rate of the model against a fixed adversary.
 
         :param adversary: Neural network to play against
         :type adversary: NeuralNet
         :return: Win rate of the model against the adversary
         :rtype: float
+        :param mcts: Monte Carlo Tree Search object, defaults to None
+        :type mcts: m.MCTS, optional
         :param num_games: Number of games to play, defaults to 50
         :type num_games: int, optional
+        :param search_count: Number of searches to perform in each game, defaults to 1000
+        :type search_count: int, optional
         """
+        if mcts is None:
+            mcts = m.MCTS(self)
         win_history = np.empty([0,])
         game = s.Surround(human_controls=0)
         game.reset()
-        
+
         for _ in range(num_games):
+            mcts.root_game = game
+            mcts.root_node = mcts.root.get_root()
             while True:
+                mcts.search(search_count) # is it here that I shoudl grow MCTS?
                 model_action = self.play(game.board)
                 adversary_action = adversary.play(game.board)
                 _, _, _, lose1, lose2 = game.step((model_action, adversary_action))
-                
+                mcts.move((model_action, adversary_action))
                 if lose1 and lose2:
                     win_history = np.append(win_history, 0)
                     break
@@ -78,7 +88,7 @@ class NeuralNet():
                     win_history = np.append(win_history, 1)
                     break
 
-        return win_history.mean()      
+        return win_history.mean(), mcts
     
     def train(self, adversary: 'NeuralNet', min_win_rate: int = 0.6) -> None: # ATTENTION: docstring must be updated
         """Train the model until it reaches a win rate of 0.55 against the adversary.
@@ -108,7 +118,7 @@ class NeuralNet():
             trainment_step = 1
 
             while win_rate < min_win_rate:
-                boards_buffer, probs_buffer = MCTS.get_buffers(adversary) # ATTENTION: MCTS is not implemented yet
+                boards_buffer, probs_buffer = mcts.get_buffers(adversary) # ATTENTION: MCTS is not implemented yet
 
                 self.fit(boards_buffer, probs_buffer, epochs=10)
                 

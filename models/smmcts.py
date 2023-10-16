@@ -6,6 +6,7 @@ import sys
 import os
 import random
 import time
+from queue import Queue
 sys.path.append(os.path.join(os.path.dirname(__file__), '../game'))
 import surround as s
 
@@ -67,6 +68,18 @@ class Node:
         """        
 
         return (self.ucb1(0),self.ucb1(1))
+    
+    def get_root(self) -> Node:
+        """returns the root node
+
+        :return: root node
+        :rtype: Node
+        """        
+        node = self
+        while node.parent is not None:
+            node = node.parent
+        return node
+    
 
         
 
@@ -210,12 +223,58 @@ class MCTS:
         
     
     
-    def move(self, move):
+    def move(self, move: tuple[int]) -> None:
+        """move the root to the child corresponding to the move
+
+        :param move: move to be performed
+        :type move: tuple[int]
+        """       
         if move in self.root.children:
             self.root_game.step(move)
             self.root = self.root.children[move]
             return
         
-        self.root_game.step(move)
-        self.root = Node(None, None)
+        # self.root_game.step(move)
+        # self.root.children[move] = Node(move,self.root)
+        # self.root.children[move].N = 1
+        # self.root = self.root.children[move]
+        raise Exception("Move not in children")
+    
+    def get_buffer(self) -> tuple[np.array,np.array]:
+        """get the buffer of the tree
+
+        :return: boards buffer, probs buffer
+        :rtype: tuple[np.array,np.array]
+        """        
+        boards_buffer = []
+        probs_buffer = []
+        node = self.root.get_root()
+        queue = Queue()
+        game = s.Surround()
+        game.reset()
+        board = game.board
+        queue.enqueue((node,board))
+        while not queue.is_empty():
+            node, board = queue.dequeue()
+            boards_buffer.append(board)
+            probs = np.zeros((4,), dtype=np.float32)
+            player1 = np.nonzero(board[:,:,1])
+            player1 = player1[0][0], player1[1][0]
+            player2 = np.nonzero(board[:,:,2])
+            player2 = player2[0][0], player2[1][0]
+
+            for child in node.children.values():
+                child_board = np.zeros((s.BOARD_WIDTH,s.BOARD_HEIGHT,3), dtype=np.bool)
+                child_board[:,:,0] = board[:,:,0]
+                board[player1[0]+child.move[0][0],player1[1]+child.move[1][1],1] = 1
+                board[player2[0]+child.move[0][0],player2[1]+child.move[1][1],2] = 1
+                board[player1[0],player1[1],0] = 1
+                board[player2[0],player2[1],0] = 1
+                probs[child.move[0]-1] += child.value()[0]
+                queue.enqueue((child,child_board))
+            probs_buffer.append(probs)
+
+
+        return np.array(boards_buffer), np.array(probs_buffer)
+    
 

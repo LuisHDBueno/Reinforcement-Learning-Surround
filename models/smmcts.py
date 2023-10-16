@@ -106,8 +106,12 @@ class MCTS:
         board = game.board[:,:,0]
         player1 = game.player1.pos_x, game.player1.pos_y
         player2 = game.player2.pos_x, game.player2.pos_y
+        print("board:", board.astype(np.int8))
+        print("player1:", game.board[:,:,1].astype(np.int8))
+        print("player2:", game.board[:,:,2].astype(np.int8))
         moves1 = []
         moves2 = []
+        moves = []
         if not board[player1[0]+1, player1[1]]: moves1.append(1)
         if not board[player1[0], player1[1]+1]: moves1.append(2)
         if not board[player1[0]-1, player1[1]]: moves1.append(3)
@@ -117,8 +121,10 @@ class MCTS:
         if not board[player2[0], player2[1]+1]: moves1.append(2)
         if not board[player2[0]-1, player2[1]]: moves1.append(3)
         if not board[player2[0], player2[1]-1]: moves1.append(4)
-        
-        return [(move1,move2) for move1 in moves1 for move2 in moves2]
+        for move1 in moves1:
+            for move2 in moves2:
+                    moves.append((move1,move2))
+        return moves
     
     def game_over(self, game: s.Surround) -> bool:
         """chech if game is over
@@ -130,8 +136,8 @@ class MCTS:
         """        
         lose1, lose2,  = game.lose1, game.lose2
         if lose1 or lose2:
-            return False
-        return True
+            return True
+        return False
     
     def expand(self, parent: Node, game: s.Surround) -> bool:
         """expand the tree adding all possible actions from the current state
@@ -145,7 +151,7 @@ class MCTS:
         """        
         if self.game_over(game):
             return False
-        
+        print(self.legal_moves(game))
         children = [Node(move,parent) for move in self.legal_moves(game)]
         parent.add_children(children)
 
@@ -238,9 +244,8 @@ class MCTS:
             return
         
         self.root_game.step(move)
-        self.root.children[move] = Node(move,self.root)
-        self.root.children[move].N = 1
-        self.root = self.root.children[move]
+        self.expand(self.root, self.root_game)
+        self.search()
         # raise Exception("Move not in children")
     
     def get_buffer(self) -> tuple[np.array,np.array]:

@@ -172,6 +172,10 @@ class MCTS:
                 return node, game
         
         if self.expand(node, game):
+            if len(node.children) == 0:
+                game.step(node.move)
+                return node, game
+            
             node = random.choice(list(node.children.values()))
             game.step(node.move)
         
@@ -243,7 +247,7 @@ class MCTS:
         self.root = self.root.children[move]
         # raise Exception("Move not in children")
     
-    def get_buffer(self) -> tuple[np.array,np.array]:
+    def get_buffers(self) -> tuple[np.array,np.array]:
         """get the buffer of the tree
 
         :return: boards buffer, probs buffer

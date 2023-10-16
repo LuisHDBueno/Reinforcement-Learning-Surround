@@ -22,7 +22,7 @@ class NeuralNet():
         :return: Array containing the relative reward for each action, interpreted as a probability distribution
         :rtype: np.array
         """         
-        return self.model.predict(board.reshape(1, BOARD_WIDTH, BOARD_HEIGHT, 3))
+        return self.model.predict(board.reshape(1, BOARD_WIDTH, BOARD_HEIGHT, 3), verbose=0)
         
     def fit(self, boards: np.array, rewards: np.array, batch_size: int = 64, epochs: int = 1) -> None:
         """Fit the model with the given boards and rewards.
@@ -102,7 +102,7 @@ class NeuralNet():
         :return: Win rate history
         :rtype: np.array
         """        
-        win_rate = self.get_win_rate(adversary)
+        win_rate, _ = self.get_win_rate(adversary)
 
         if win_rate > min_win_rate:
             print(f'Win rate: {win_rate}')
@@ -110,7 +110,7 @@ class NeuralNet():
 
             return np.array([win_rate])
         else:
-            win_rate_history = np.empty([win_rate])
+            win_rate_history = np.array([win_rate])
             _, mcts = self.get_win_rate(adversary)
             print(f'Win rate: {win_rate}')
             print("Trainment needed, proceding to trainment...")

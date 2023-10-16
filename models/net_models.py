@@ -1,7 +1,7 @@
 import numpy as np
 import tensorflow as tf
 from keras.models import Sequential
-import smmcts as m
+import new_mcts as m
 from keras.layers import Conv2D, MaxPool2D, Flatten, Dense
 import os
 import sys
@@ -27,7 +27,7 @@ class NeuralNet():
         :return: Array containing the relative reward for each action, interpreted as a probability distribution
         :rtype: np.array
         """         
-        return self.model.predict(board.reshape(1, BOARD_WIDTH, BOARD_HEIGHT, 3), verbose=1)
+        return self.model.predict(board.reshape(1, BOARD_WIDTH, BOARD_HEIGHT, 3), verbose=0)
         
     def fit(self, boards: np.array, rewards: np.array, batch_size: int = 64, epochs: int = 1) -> None:
         """Fit the model with the given boards and rewards.
@@ -41,9 +41,9 @@ class NeuralNet():
         :param epochs: Number of trainment epochs, defaults to 1
         :type epochs: int, optional
         """
-        self.model.fit(boards, rewards, batch_size=batch_size, epochs=epochs, verbose=0)
+        self.model.fit(boards, rewards, batch_size=batch_size, epochs=epochs, verbose=1)
 
-    def play(self, board: np.array, player: int = 1) -> int:
+    def play(self, board: np.array, player: int = 1, eps:int = 0.05) -> int:
         """Choose the best action to play.
 
         :param board: Current game board
@@ -53,17 +53,19 @@ class NeuralNet():
         :return: Best action to play
         :rtype: int
         """
+        if np.random.uniform(0, 1) < eps:
+            return np.random.randint(1, 5)
         if player == 1:            
             best_action = np.argmax(self.predict(board))
         elif player == 2:
-            board[:,:,0] = np.matmul(np.matmul(PERMUTATION_MATRIX, board[:,:,0]), PERMUTATION_MATRIX)
-            board[:,:,1] = np.matmul(np.matmul(PERMUTATION_MATRIX, board[:,:,1]), PERMUTATION_MATRIX)
-            board[:,:,2] = np.matmul(np.matmul(PERMUTATION_MATRIX, board[:,:,2]), PERMUTATION_MATRIX)
+            board[:,:,0] = np.matmul(board[:,:,0], PERMUTATION_MATRIX)
+            board[:,:,1] = np.matmul(board[:,:,1], PERMUTATION_MATRIX)
+            board[:,:,2] = np.matmul(board[:,:,2], PERMUTATION_MATRIX)
             board[:, :, 1], board[:, :, 2] = board[:, :, 2], board[:, :, 1]
-            best_action = np.argmin(self.predict(board))
+            best_action = np.argmax(self.predict(board))
         return best_action + 1
     
-    def get_win_rate(self, adversary: 'NeuralNet',mcts: m.MCTS = None, num_games: int = 50, search_count: int = 1000) -> float:
+    def get_win_rate(self, adversary: 'NeuralNet', num_games: int = 20) -> float:
         """Get the win rate of the model against a fixed adversary.
 
         :param adversary: Neural network to play against
@@ -77,34 +79,28 @@ class NeuralNet():
         :param search_count: Number of searches to perform in each game, defaults to 1000
         :type search_count: int, optional
         """
-        if mcts is None:
-            mcts = m.MCTS(self)
-        win_history = np.empty([0,])
+        win_history = []
         game = s.Surround(human_controls=0)
         game.reset()
 
         for _ in range(num_games):
-            mcts.root_game = game
-            mcts.root_node = mcts.root.get_root()
             while True:
-                mcts.search(search_count) # is it here that I shoudl grow MCTS?
                 model_action = self.play(game.board)
                 adversary_action = adversary.play(game.board, 2)
                 _, _, _, lose1, lose2 = game.step((model_action, adversary_action))
-                mcts.move((model_action, adversary_action))
                 if lose1 and lose2:
-                    win_history = np.append(win_history, 0)
+                    win_history.append(0)
                     break
                 elif lose1:
-                    win_history = np.append(win_history, -1)
+                    win_history.append(-1)
                     break
                 elif lose2:
-                    win_history = np.append(win_history, 1)
+                    win_history.append(1)
                     break
-
-        return win_history.mean(), mcts
+        mean = np.mean(win_history)
+        return mean
     
-    def train(self, adversary: 'NeuralNet', min_win_rate: int = 0.6) -> None: # ATTENTION: docstring must be updated
+    def train(self, adversary: 'NeuralNet', min_win_rate: int = 0.2) -> None: # ATTENTION: docstring must be updated
         """Train the model until it reaches a win rate of 0.55 against the adversary.
 
         :param boards_buffer: _description_
@@ -116,7 +112,7 @@ class NeuralNet():
         :return: Win rate history
         :rtype: np.array
         """        
-        win_rate, _ = self.get_win_rate(adversary)
+        win_rate = self.get_win_rate(adversary)
 
         if win_rate > min_win_rate:
             print(f'Win rate: {win_rate}')
@@ -124,19 +120,19 @@ class NeuralNet():
 
             return np.array([win_rate])
         else:
+            mcts = m.MCTS(self, adversary)
             win_rate_history = np.array([win_rate])
-            _, mcts = self.get_win_rate(adversary)
             print(f'Win rate: {win_rate}')
             print("Trainment needed, proceding to trainment...")
 
             trainment_step = 1
 
             while win_rate < min_win_rate:
-                boards_buffer, probs_buffer = mcts.get_buffers(adversary) # ATTENTION: MCTS is not implemented yet
-
+                boards_buffer, probs_buffer = mcts.get_buffers() # ATTENTION: MCTS is not implemented yet
+                print("criei o buffer")
                 self.fit(boards_buffer, probs_buffer, epochs=10)
                 
-                win_rate, mcts = self.get_win_rate(adversary, mcts=mcts)
+                win_rate = self.get_win_rate(adversary)
                 win_rate_history = np.append(win_rate_history, win_rate)
 
                 print(f'Win rate: {win_rate}')
@@ -151,7 +147,7 @@ class NeuralNet():
         :param file_name: Name of the file to save the model
         :type file_name: str
         """            
-        self.model.save(f'./saved_models/{file_name}.keras')
+        self.model.save(f'{file_name}.keras')
 
     def load(self, file_name: str) -> None:
         """Load pre-trained model.

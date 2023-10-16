@@ -316,6 +316,8 @@ class Surround():
         self.player1 = Player(BOARD_WIDTH * 1//4, BOARD_HEIGHT//2, 1, 1)
         # Third layer is the player 2
         self.player2 = Player(BOARD_WIDTH * 3//4, BOARD_HEIGHT//2, 2, 3)
+        self.board[self.player1.pos_x, self.player1.pos_y, 1] = 1
+        self.board[self.player2.pos_x, self.player2.pos_y, 2] = 1
 
     def check_lose(self, old_board) -> tuple:
         """Check if one of the players lose

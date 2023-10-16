@@ -106,9 +106,9 @@ class MCTS:
         board = game.board[:,:,0]
         player1 = game.player1.pos_x, game.player1.pos_y
         player2 = game.player2.pos_x, game.player2.pos_y
-        print("board:", board.astype(np.int8))
-        print("player1:", game.board[:,:,1].astype(np.int8))
-        print("player2:", game.board[:,:,2].astype(np.int8))
+        #print("board:", board.astype(np.int8))
+        #print("player1:", game.board[:,:,1].astype(np.int8))
+        #print("player2:", game.board[:,:,2].astype(np.int8))
         moves1 = []
         moves2 = []
         moves = []
@@ -170,18 +170,14 @@ class MCTS:
             children = node.children.values()
             max_value1 = max(children, key=lambda child: child.value()[0]).value()[0]
             max_value2 = max(children, key=lambda child: child.value()[1]).value()[1]
-            max_nodes = [child for child in children if child.value() == (max_value1,max_value2)]
+            max_nodes = [child for child in children if child.value()[0] == max_value1 or child.value()[1] == max_value2]
             node = random.choice(max_nodes)
             game.step(node.move)
 
             if node.N == 0:
                 return node, game
         
-        if self.expand(node, game):
-            if len(node.children) == 0:
-                game.step(node.move)
-                return node, game
-            
+        if self.expand(node, game):            
             node = random.choice(list(node.children.values()))
             game.step(node.move)
         

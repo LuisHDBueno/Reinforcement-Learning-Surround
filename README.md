@@ -38,26 +38,7 @@ The version used in this project is a 16 x 16 grid where the two snakes are cont
 
 ## Observation Space
 
-The observation space is a 16 x 16 matrix where each cell can have one of the values described in the table below.
-<div align = "center">
-<table>
-  <tr>
-    <th>Value</th> <th>Meaning</th>
-  </tr>
-  <tr>
-    <td>0</td> <td>empty</td>
-  </tr>
-  <tr>
-    <td>1</td> <td>wall</td>
-  </tr>
-  <tr>
-    <td>2</td> <td>player 1</td>
-  </tr>
-  <tr>
-    <td>3</td> <td>player 2</td>
-  </tr>
-</table>
-</div>
+The observation space is a 16 x 16 x 3 matrix where each layer is filled with 0 for nothing and 1 for objects. The first layer is filled with 1 for the walls, the second layer is filled with 1 for the player 1 snake and the third layer is filled with 1 for the player 2 snake.
 
 ## Action Space
 Each action is represented by a number from 0 to 4, as shown in the table below.

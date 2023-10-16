@@ -12,6 +12,11 @@ import surround as s
 BOARD_HEIGHT = s.BOARD_HEIGHT
 BOARD_WIDTH = s.BOARD_WIDTH
 
+# Permutation matrix to rotate the board
+PERMUTATION_MATRIX = np.zeros((BOARD_HEIGHT, BOARD_WIDTH))
+for i in range(BOARD_HEIGHT):
+    PERMUTATION_MATRIX[i, BOARD_WIDTH - 1 - i] = 1
+
 class NeuralNet():
     def predict(self, board: np.array) -> np.array:
         """Predict the reward distribution for each action.
@@ -37,15 +42,24 @@ class NeuralNet():
         """
         self.model.fit(boards, rewards, batch_size=batch_size, epochs=epochs, verbose=0)
 
-    def play(self, board: np.array) -> int:
+    def play(self, board: np.array, player: int = 1) -> int:
         """Choose the best action to play.
 
         :param board: Current game board
         :type board: np.array
+        :param player: Player to play, defaults to 1
+        :type player: int, optional
         :return: Best action to play
         :rtype: int
-        """            
-        best_action = np.argmax(self.predict(board))
+        """
+        if player == 1:            
+            best_action = np.argmax(self.predict(board))
+        elif player == 2:
+            board[0] = np.matmul(np.matmul(PERMUTATION_MATRIX, board[0]), PERMUTATION_MATRIX)
+            board[1] = np.matmul(np.matmul(PERMUTATION_MATRIX, board[1]), PERMUTATION_MATRIX)
+            board[2] = np.matmul(np.matmul(PERMUTATION_MATRIX, board[2]), PERMUTATION_MATRIX)
+            board[:, :, 1], board[:, :, 2] = board[:, :, 2], board[:, :, 1]
+            best_action = np.argmin(self.predict(board))
         return best_action + 1
     
     def get_win_rate(self, adversary: 'NeuralNet', num_games: int = 50) -> float:
@@ -65,7 +79,7 @@ class NeuralNet():
         for _ in range(num_games):
             while True:
                 model_action = self.play(game.board)
-                adversary_action = adversary.play(game.board)
+                adversary_action = adversary.play(game.board, 2)
                 _, _, _, lose1, lose2 = game.step((model_action, adversary_action))
                 
                 if lose1 and lose2:

@@ -111,7 +111,7 @@ class NeuralNet():
             return np.array([win_rate])
         else:
             win_rate_history = np.empty([win_rate])
-        
+            _, mcts = self.get_win_rate(adversary)
             print(f'Win rate: {win_rate}')
             print("Trainment needed, proceding to trainment...")
 
@@ -122,7 +122,7 @@ class NeuralNet():
 
                 self.fit(boards_buffer, probs_buffer, epochs=10)
                 
-                win_rate = self.get_win_rate(adversary)
+                win_rate, mcts = self.get_win_rate(adversary, mcts=mcts)
                 win_rate_history = np.append(win_rate_history, win_rate)
 
                 print(f'Win rate: {win_rate}')

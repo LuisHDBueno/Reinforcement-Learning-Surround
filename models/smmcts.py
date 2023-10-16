@@ -193,7 +193,7 @@ class MCTS:
             node.Q += outcome
             node = node.parent
         
-    def search(self, count: int) -> None:
+    def search(self, count: int = 1000) -> None:
         """Grow tree
 
         :param count: number of times to perform tree growth, defaults to 50

@@ -97,5 +97,54 @@ We implemented two variations of an AlphaGo-like approach to solve the problem, 
 # Conclusion
 
 # Usage Guide
+In order to run the code, you must have Python 3.11 and the modules listed in the requirements.txt file installed. We recommend using a virtual environment:
+  
+  ```bash
+  python3 -m venv rl-surround
+  
+  source rl-surround/Scripts/activate 
+  # rl-surround\Scripts\activate on Windows
+  
+  pip install -r requirements.txt
+  ```
+
+  To play the game against our best model, run the following command:
+  
+  ```
+  python3 game/surround.py challenge
+  ```
+
+  To play the game against a random model, run the following command:
+  
+  ```
+  python3 game/surround.py random
+  ```
+
+  To play the game against a human player, run the following command:
+  
+  ```
+  python3 game/surround.py human
+  ```
+
+  To watch two models playing against each other, run the following command:
+  
+  ```
+  python3 game/surround.py watch
+  ```
+
+  For a one human player game, the controls are WASD. For a two human player game, the controls are WASD for the first player and the arrow keys for the second player.
 
 # References
+LANCTOT, Marc; WITTLINGER, Christopher; WINANDS, Mark H. M.; TEULING, Niek G. P. Den. Monte Carlo Tree Search for Simultaneous
+Move Games: A Case Study in the Game of Tron. **Proceedings of Computer Games Workshop**. 2012. Available at: <https://dke.maastrichtuniversity.nl/m.winands/documents/sm-tron-bnaic2013.pdf>. Access on: 2023/10/15.
+
+LAPAN, Maxim. **Deep Reinforcement Learning Hands-On**. 2nd Edition. Packt Publishing, 2020.
+
+PREICK, Pierre; ST-PIERRE, David L.; MAES, Francis; ERNST, Damien. Comparison of Different Selection Strategies in Monte-Carlo Tree
+Search for the Game of Tron. **IEEE Conference on Computational Intelligence and Games (CIG)**, Granada, Spain, 2012, pp. 242-249, doi: 10.1109/CIG.2012.6374162.
+
+SLOANE, Andy. **Google AI Challenge post-mortem**. 2011. Available at: <https://web.archive.org/web/20111230055046/http://a1k0n.net/2010/03/04/google-ai-postmortem.html>. Access on: 2023/10/15.
+
+SUTTON, Richard S.; BARTO, Andrew G. **Reinforcement Learning: An Introduction**. 2nd Edition. MIT Press, 2018.
+
+WANG, Qi. **Connect 4 with Monte Carlo Tree Search**. 2022. Available at: <https://www.harrycodes.com/blog/monte-carlo-tree-search>. Access on: 2023/10/15.

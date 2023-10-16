@@ -22,7 +22,7 @@ class NeuralNet():
         :return: Array containing the relative reward for each action, interpreted as a probability distribution
         :rtype: np.array
         """         
-        return self.model.predict(board)
+        return self.model.predict(board.reshape(1, BOARD_WIDTH, BOARD_HEIGHT, 3))
         
     def fit(self, boards: np.array, rewards: np.array, batch_size: int = 64, epochs: int = 1) -> None:
         """Fit the model with the given boards and rewards.

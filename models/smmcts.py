@@ -237,11 +237,11 @@ class MCTS:
             self.root = self.root.children[move]
             return
         
-        # self.root_game.step(move)
-        # self.root.children[move] = Node(move,self.root)
-        # self.root.children[move].N = 1
-        # self.root = self.root.children[move]
-        raise Exception("Move not in children")
+        self.root_game.step(move)
+        self.root.children[move] = Node(move,self.root)
+        self.root.children[move].N = 1
+        self.root = self.root.children[move]
+        # raise Exception("Move not in children")
     
     def get_buffer(self) -> tuple[np.array,np.array]:
         """get the buffer of the tree

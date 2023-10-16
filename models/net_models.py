@@ -27,7 +27,7 @@ class NeuralNet():
         :return: Array containing the relative reward for each action, interpreted as a probability distribution
         :rtype: np.array
         """         
-        return self.model.predict(board.reshape(1, BOARD_WIDTH, BOARD_HEIGHT, 3), verbose=0)
+        return self.model.predict(board.reshape(1, BOARD_WIDTH, BOARD_HEIGHT, 3), verbose=1)
         
     def fit(self, boards: np.array, rewards: np.array, batch_size: int = 64, epochs: int = 1) -> None:
         """Fit the model with the given boards and rewards.
@@ -56,9 +56,9 @@ class NeuralNet():
         if player == 1:            
             best_action = np.argmax(self.predict(board))
         elif player == 2:
-            board[0] = np.matmul(np.matmul(PERMUTATION_MATRIX, board[0]), PERMUTATION_MATRIX)
-            board[1] = np.matmul(np.matmul(PERMUTATION_MATRIX, board[1]), PERMUTATION_MATRIX)
-            board[2] = np.matmul(np.matmul(PERMUTATION_MATRIX, board[2]), PERMUTATION_MATRIX)
+            board[:,:,0] = np.matmul(np.matmul(PERMUTATION_MATRIX, board[:,:,0]), PERMUTATION_MATRIX)
+            board[:,:,1] = np.matmul(np.matmul(PERMUTATION_MATRIX, board[:,:,1]), PERMUTATION_MATRIX)
+            board[:,:,2] = np.matmul(np.matmul(PERMUTATION_MATRIX, board[:,:,2]), PERMUTATION_MATRIX)
             board[:, :, 1], board[:, :, 2] = board[:, :, 2], board[:, :, 1]
             best_action = np.argmin(self.predict(board))
         return best_action + 1

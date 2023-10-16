@@ -1,6 +1,5 @@
 
 import numpy as np
-from collections import Iterable
 from copy import deepcopy
 import sys
 import os
@@ -25,7 +24,7 @@ class Node:
     :param outcome: -1 if not terminal, 0 if draw, 1 if p1 wins, 2 if p2 wins
     :type outcome: int
     """    
-    def __init__(self, move:tuple(int),parent: Node):
+    def __init__(self, move:tuple[int],parent):
         """init of class Node
 
         :param move: moves taken from parent(move_player1, move_player2)
@@ -36,11 +35,11 @@ class Node:
         self.move = move
         self.parent = parent
         self.N = 0 # number of simulations
-        self.Q = np.zeros((2,), dtype = np.int) # number of wins for each player
+        self.Q = np.zeros((2,), dtype = np.int32) # number of wins for each player
         self.children = {}#key: move, item: child Node
         self.outcome = -1 #-1 if not terminal, 0 if draw, 1 if p1 wins, 2 if p2 wins
 
-    def add_children(self, children: Iterable) -> None:
+    def add_children(self, children) -> None:
         """add children. 
         There should be children for all legal moves
 
@@ -69,7 +68,7 @@ class Node:
 
         return (self.ucb1(0),self.ucb1(1))
     
-    def get_root(self) -> Node:
+    def get_root(self):
         """returns the root node
 
         :return: root node
@@ -96,7 +95,7 @@ class MCTS:
         self.node_count = 0
         self.num_rollout = 0
 
-    def legal_moves(game: s.Surround) -> list[tuple[int]]:
+    def legal_moves(self,game: s.Surround) -> list[tuple[int]]:
         """returns a list of legal moves for both players
 
         :param game: game state
@@ -188,7 +187,11 @@ class MCTS:
         """        
         lose1, lose2, = False, False
         while not lose1 and not lose2:
-            _,_,_,lose1,lose2 = game.step(random.choice(self.legal_moves(game)))
+            moves = self.legal_moves(game)
+            if len(moves):
+                _,_,_,lose1,lose2 = game.step(random.choice(moves))
+            else:
+                lose1, lose2 = True, True
         
         return [int(not lose1), int(not lose2)]
     

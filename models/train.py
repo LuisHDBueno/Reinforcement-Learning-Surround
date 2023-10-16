@@ -1,7 +1,7 @@
 import numpy as np
 import seaborn as sns
 import net_models as nm
-
+from copy import deepcopy
 def train_model(model: str, save_rate: int = 5, train_iterations: int = 100, min_win_rate: int = 0.6) -> None:
     """Train the model until it reaches a win rate of 0.55 against the adversary.
 
@@ -16,10 +16,10 @@ def train_model(model: str, save_rate: int = 5, train_iterations: int = 100, min
     """    
     if model == 'dnn':
         agent1 = nm.DenseNet()
-        agent2 = agent1.copy()
+        agent2 = deepcopy(agent1)
     else:
         agent1 = nm.ConvolutionNet()
-        agent2 = agent1.copy()
+        agent2 = deepcopy(agent1)
 
     win_rate_history = np.empty([0,])
     win_rate = agent1.get_win_rate(agent2)

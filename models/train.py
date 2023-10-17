@@ -43,5 +43,5 @@ def train_model(model: str, save_rate: int = 5, train_iterations: int = 10, min_
         print("Passo 4")
 
 if __name__ == '__main__':
-    train_model(model='dnn', train_iterations=10)
     train_model(model='cnn', train_iterations=10)
+    train_model(model='dnn', train_iterations=10)

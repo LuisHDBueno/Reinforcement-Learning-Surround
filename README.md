@@ -1,5 +1,5 @@
 # Reinforcement-Learning-Surround
-This project is the final evaluation for the Reinforcement Learning master´s course subject, conducted by Professor Flávio Codeço Coelho at FGV-EMAp.
+This project is the final evaluation for the Reinforcement Learning master´s course subject, conducted by Professor Flávio Codeço Coelho at FGV-EMAp. We developed two variations of an AlphaGo-like approach to solve the Atari game Surround via Reinforcement Learning.
 
 # Summary
 

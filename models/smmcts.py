@@ -6,6 +6,7 @@ import os
 import random
 import time
 from queue import Queue
+import pickle
 sys.path.append(os.path.join(os.path.dirname(__file__), '../game'))
 import surround as s
 
@@ -57,7 +58,9 @@ class Node:
         :return: policy value
         :rtype: float
         """        
-        return self.Q/self.N + np.sqrt(2*(np.log(self.parent.N))/self.N)
+        if self.N == 0:
+            return 0
+        return self.Q[player]/self.N + np.sqrt(2*(np.log(self.parent.N))/self.N)
 
     def value(self) -> tuple[float]:
         """ calculates selection value
@@ -117,10 +120,10 @@ class MCTS:
         if not board[player1[0]-1, player1[1]]: moves1.append(3)
         if not board[player1[0], player1[1]-1]: moves1.append(4)
 
-        if not board[player2[0]+1, player2[1]]: moves1.append(1)
-        if not board[player2[0], player2[1]+1]: moves1.append(2)
-        if not board[player2[0]-1, player2[1]]: moves1.append(3)
-        if not board[player2[0], player2[1]-1]: moves1.append(4)
+        if not board[player2[0]+1, player2[1]]: moves2.append(1)
+        if not board[player2[0], player2[1]+1]: moves2.append(2)
+        if not board[player2[0]-1, player2[1]]: moves2.append(3)
+        if not board[player2[0], player2[1]-1]: moves2.append(4)
         for move1 in moves1:
             for move2 in moves2:
                     moves.append((move1,move2))
@@ -151,7 +154,8 @@ class MCTS:
         """        
         if self.game_over(game):
             return False
-        print(self.legal_moves(game))
+        if len(self.legal_moves(game)) == 0:
+            return False
         children = [Node(move,parent) for move in self.legal_moves(game)]
         parent.add_children(children)
 
@@ -170,8 +174,11 @@ class MCTS:
             children = node.children.values()
             max_value1 = max(children, key=lambda child: child.value()[0]).value()[0]
             max_value2 = max(children, key=lambda child: child.value()[1]).value()[1]
-            max_nodes = [child for child in children if child.value()[0] == max_value1 or child.value()[1] == max_value2]
-            node = random.choice(max_nodes)
+            max_nodes1 = [child for child in children if child.value()[0] == max_value1]
+            max_nodes2 = [child for child in children if child.value()[1] == max_value2]
+            node1 = random.choice(max_nodes1).move[0]
+            node2 = random.choice(max_nodes2).move[1]
+            node = node.children[(node1,node2)]
             game.step(node.move)
 
             if node.N == 0:
@@ -233,20 +240,83 @@ class MCTS:
     
     
     def move(self, move: tuple[int]) -> None:
-        """move the root to the child corresponding to the move
+        """move the root to the child correspon10000ding to the move
 
         :param move: move to be performed
         :type move: tuple[int]
         """       
+        if self.game_over(self.root_game):
+            self.root_game.reset()
+            self.root = self.root.get_root()
         if move in self.root.children:
             self.root_game.step(move)
             self.root = self.root.children[move]
-            return
-        
-        self.root_game.step(move)
-        self.expand(self.root, self.root_game)
-        self.search()
+        else:
+            self.root_game.step(move)
+            if not self.game_over(self.root_game):
+                self.expand(self.root, self.root_game)
+                self.search()
+        if self.game_over(self.root_game):
+            self.root_game.reset()
+            self.root = self.root.get_root()
         # raise Exception("Move not in children")
+
+    def best_move(self) -> tuple[int,int]:
+        """returns the best move for each player
+
+        :return: best move for each player
+        :rtype: tuple[int,int]
+        """        
+        if self.game_over(self.root_game):
+            return None
+        if self.root.children == {}:
+            if self.legal_moves(self.root_game) == []:
+                return None
+            self.search()
+        max_value1 = max(self.root.children.values(), key=lambda child: child.Q[0]/child.N if child.N else 0)
+        max_value2 = max(self.root.children.values(), key=lambda child: child.Q[1]/child.N if child.N else 0)
+        max_value1 = max_value1.Q[0]/max_value1.N if max_value1.N else 0
+        max_value2 = max_value2.Q[1]/max_value2.N if max_value2.N else 0
+        if max_value1 == 0:
+            max_nodes1 = [child for child in self.root.children.values()]
+        else:
+            max_nodes1 = [child for child in self.root.children.values() if child.Q[0]/child.N == max_value1]
+        if max_value2 == 0:
+            max_nodes2 = [child for child in self.root.children.values()]
+        else:
+            max_nodes2 = [child for child in self.root.children.values() if child.Q[1]/child.N == max_value2]
+        best_child1 = random.choice(max_nodes1).move[0]
+        best_child2 = random.choice(max_nodes2).move[1]
+
+        return (best_child1, best_child2)
+    
+    def train(self, num_games: int = 1) -> None:
+        """train the model
+
+        :param num_games: number of games played, defaults to 1
+        :type num_games: int, optional
+        """        
+        self.root_game.reset()
+        self.root = self.root.get_root()
+        i = 0
+        while i<num_games:
+            self.search(10000)
+            move = self.best_move()
+            if move == None:
+                print("Game",i,"over")
+                print("result: ",self.root_game.lose1," ", self.root_game.lose2)
+                i+=1
+                self.root_game.reset()
+                self.root = self.root.get_root()
+                continue
+            if self.game_over(self.root_game):
+                i+=1
+                print("Game",i,"over")
+                print("result: ",self.root_game.lose1," ", self.root_game.lose2)
+            self.move(move)
+
+
+
     
     def get_buffers(self) -> tuple[np.array,np.array]:
         """get the buffer of the tree
@@ -285,4 +355,44 @@ class MCTS:
 
         return np.array(boards_buffer), np.array(probs_buffer)
     
+    def get_game(self,node = None):
 
+        # if node == None:
+        #     node = self.root
+        
+        # moves = []
+        # while node.parent is not None:
+        #     moves.append(node.move)
+        #     node = node.parent
+        # moves.reverse()
+        
+        # game = s.Surround()
+        # game.reset()
+        # boa
+        # for move in moves:
+        pass
+
+
+
+    
+if __name__ == "__main__":
+    smmcts = MCTS()
+    smmcts.train(50)
+    with open("tree.pkl","wb") as f:
+        pickle.dump(smmcts,f)
+    # x = input("Let's play")
+    # jogo = s.Surround(human_render=True, human_controls=0, frame_rate=10)
+    # jogo.reset()
+    # x = 1
+    # tempo = time.time()
+    # while x < 10000:
+    #     y = 1
+    #     while y < 100:
+    #         if smmcts.best_move() != None:
+    #             move = smmcts.best_move()
+    #         reward, old_board, board, lose1, lose2 = jogo.step(move)
+    #         smmcts.move(smmcts.best_move())
+    #         y += 1
+    #     x += 1
+    #     print(x)
+    

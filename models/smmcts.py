@@ -44,33 +44,57 @@ class Node:
         """add children. 
         There should be children for all legal moves
 
-        :param children: children nodes to be Added
-        :type children: Iterable
+        :param children: children moves to be added
+        :type children: Iterable[tuple[int]]
         """        
         for child in children:
-            self.children[child.move] = child
+            self.children[child] = Node(child,self)
         
     def ucb1(self, player:bool) -> float:
-        """calculate index based policy USB1-Tuned for given player 
-        :param totalN: total number of
+        """calculate index based policy UCB1 for given player 
         :param player: 0 for player 1, 1 for player 2
         :type player: bool
         :return: policy value
         :rtype: float
         """        
         if self.N == 0:
-            return 0
+            return np.inf
         return self.Q[player]/self.N + np.sqrt(2*(np.log(self.parent.N))/self.N)
+    
+    def var(self, player:bool) -> float:
 
-    def value(self) -> tuple[float]:
+        if self.N == 0 or len(self.children) <=1:
+            return np.inf
+        m = np.mean([child.Q[player]/child.N for child in self.children.values()])
+        Sn = 0
+
+        for child in self.children.values():
+            Sn += (child.Q[player]/child.N - m)**2
+        Sn = Sn/(len(self.children)-1)
+        return Sn
+    def ucb1_tuned(self, player:bool) -> float:
+        """calculate index based policy UCB1-Tuned for given player
+
+        :param player: 0 for player 1, 1 for player 2
+        :type player: bool
+        :return: policy value
+        :rtype: float
+        """            
+        if self.N == 0:
+            return 0
+        Sn = self.parent.var(player)
+        return self.Q[player]/self.N + np.sqrt(min(0.25,Sn)/self.N)    
+    def value(self, use_ucb1:bool =True) -> tuple[float]:
         """ calculates selection value
 
+        :param use_ucb1: if True select child using UCB1, otherwise select child using UCB1-Tuned, defaults to True
+        :type use_ucb1: bool, optional
         :return: selection value of each player
         :rtype: tuple(float,float)
         """        
-
-        return (self.ucb1(0),self.ucb1(1))
-    
+        if use_ucb1:
+            return (self.ucb1(0),self.ucb1(1))
+        return (self.ucb1_tuned(0),self.ucb1_tuned(1))
     def get_win_rate(self, player:bool) -> float:
         """returns the win rate for the given player
 
@@ -100,8 +124,13 @@ class Node:
 
 
 class MCTS:
-    def __init__(self,game = None):
-    
+    def __init__(self,use_ucb1:bool = True, game: s.Surround = None):
+        """init of class MCTS
+        :param use_ucb1: if True select child using UCB1, otherwise select child using UCB1-Tuned, defaults to True
+        :type use_ucb1: bool, optional
+        :param game: root game, defaults to None
+        :type game: s.Surround, optional
+        """        
         if game == None:
             game = s.Surround()
             game.reset()
@@ -111,6 +140,7 @@ class MCTS:
         self.num_rollout = 0
         self.curr_node = self.root
         self.curr_game = self.root_game
+        self.use_ucb1 = use_ucb1
 
     def legal_moves(self,game: s.Surround) -> list[tuple[int]]:
         """returns a list of legal moves for both players
@@ -141,6 +171,11 @@ class MCTS:
         for move1 in moves1:
             for move2 in moves2:
                     moves.append((move1,move2))
+        if len(moves1) == 0:
+            moves = [(0,move2) for move2 in moves2]
+        elif len(moves2) == 0:
+            moves = [(move1,0) for move1 in moves1]
+        
         return moves
     
     def game_over(self, game: s.Surround) -> bool:
@@ -170,14 +205,14 @@ class MCTS:
             return False
         if len(self.legal_moves(game)) == 0:
             return False
-        children = [Node(move,parent) for move in self.legal_moves(game)]
-        parent.add_children(children)
-        self.node_count += len(children)
+        moves = self.legal_moves(game)
+        parent.add_children(moves)
+        self.node_count += len(moves)
         return True
     
     def select_node(self) -> tuple[Node,s.Surround]:
         """select a node to expand
-
+        
         :return: node to expand, game state
         :rtype: tuple[Node,s.Surround]
         """        
@@ -186,26 +221,23 @@ class MCTS:
 
         while len(node.children):
             children = node.children.values()
-            max_value1 = max(children, key=lambda child: child.value()[0]).value()[0]
-            max_value2 = max(children, key=lambda child: child.value()[1]).value()[1]
-            max_nodes1 = [child for child in children if child.value()[0] == max_value1]
-            max_nodes2 = [child for child in children if child.value()[1] == max_value2]
+            
+            max_value1 = max(children, key=lambda child: child.value(self.use_ucb1)[0]).value(self.use_ucb1)[0]
+            max_value2 = max(children, key=lambda child: child.value(self.use_ucb1)[1]).value(self.use_ucb1)[1]
+            max_nodes1 = [child for child in children if child.value(self.use_ucb1)[0] == max_value1]
+            max_nodes2 = [child for child in children if child.value(self.use_ucb1)[1] == max_value2]
             node1 = random.choice(max_nodes1).move[0]
             node2 = random.choice(max_nodes2).move[1]
             node = node.children[(node1,node2)]
             game.step(node.move)
-
-            if node.N == 0:
-                return node, game
         
-        if self.expand(node, game):            
-            node = random.choice(list(node.children.values()))
-            game.step(node.move)
+        self.expand(node, game)
+        return node,game
         
-        return node, game
     def select_node_curr(self) -> tuple[Node,s.Surround]:
         """select a node to expand from curr_game
 
+        
         :return: node to expand, game state
         :rtype: tuple[Node,s.Surround]
         """        
@@ -214,23 +246,20 @@ class MCTS:
 
         while len(node.children):
             children = node.children.values()
-            max_value1 = max(children, key=lambda child: child.value()[0]).value()[0]
-            max_value2 = max(children, key=lambda child: child.value()[1]).value()[1]
-            max_nodes1 = [child for child in children if child.value()[0] == max_value1]
-            max_nodes2 = [child for child in children if child.value()[1] == max_value2]
+            max_value1 = max(children, key=lambda child: child.value(self.use_ucb1)[0]).value(self.use_ucb1)[0]
+            max_value2 = max(children, key=lambda child: child.value(self.use_ucb1)[1]).value(self.use_ucb1)[1]
+            max_nodes1 = [child for child in children if child.value(self.use_ucb1)[0] == max_value1]
+            max_nodes2 = [child for child in children if child.value(self.use_ucb1)[1] == max_value2]
             node1 = random.choice(max_nodes1).move[0]
             node2 = random.choice(max_nodes2).move[1]
             node = node.children[(node1,node2)]
             game.step(node.move)
 
-            if node.N == 0:
-                return node, game
+            
         
-        if self.expand(node, game):            
-            node = random.choice(list(node.children.values()))
-            game.step(node.move)
+        self.expand(node, game)
+        return node,game
         
-        return node, game
     def roll_out(self, game: s.Surround) -> int:
         """roll out the game until the end
 
@@ -287,6 +316,7 @@ class MCTS:
             return [-1,1]
         if lose2:
             return [1,-1]
+        
     def back_propagate(self, node: Node, outcome: tuple[int]) -> None:
         """back propagate the outcome of the game
 
@@ -301,7 +331,7 @@ class MCTS:
             node.Q += outcome
             node = node.parent
         
-    def search(self, count: int = 1000) -> None:
+    def search(self, count: int = 1000, ) -> None:
         """Grow tree
 
         :param count: number of times to perform tree growth, defaults to 50
@@ -310,11 +340,17 @@ class MCTS:
         :rtype: tuple[tuple[int],float]
         """        
         
-        for _ in range(count):
+        for i in range(count):
             node, game = self.select_node()
-            outcome = self.roll_out2(game)
-            self.back_propagate(node, outcome)
-            self.num_rollout += 1
+            if len(node.children):
+                for child in node.children.values():
+                    game2 = deepcopy(game)
+                    game2.step(child.move)
+                    outcome = self.roll_out2(game2)
+                    self.back_propagate(child, outcome)
+            
+                
+                
         
     def search_curr(self, count: int = 50) -> None:
         """Grow tree
@@ -327,9 +363,12 @@ class MCTS:
         
         for _ in range(count):
             node, game = self.select_node_curr()
-            outcome = self.roll_out2(game)
-            self.back_propagate(node, outcome)
-            self.num_rollout += 1
+            if len(node.children):
+                for child in node.children.values():
+                    game2 = deepcopy(game)
+                    game2.step(child.move)
+                    outcome = self.roll_out2(game2)
+                    self.back_propagate(child, outcome)
     
     
     def move(self, move: tuple[int]) -> None:
@@ -361,10 +400,11 @@ class MCTS:
         """        
         if self.game_over(self.curr_game):
             return None
+        # if self.curr_node.N<10:
+        #     self.search_curr(50)
         if self.curr_node.children == {}:
-            if self.legal_moves(self.curr_game) == []:
-                return None
-            self.search_curr(50)
+            print("no children")
+            return None
         max_value1 = max(self.curr_node.children.values(), key=lambda child: child.get_win_rate(0)).get_win_rate(0)
         max_value2 = max(self.curr_node.children.values(), key=lambda child: child.get_win_rate(1)).get_win_rate(1)
         if max_value1 == 0:
@@ -377,36 +417,8 @@ class MCTS:
             max_nodes2 = [child for child in self.curr_node.children.values() if child.Q[1]/child.N == max_value2]
         best_child1 = random.choice(max_nodes1).move[0]
         best_child2 = random.choice(max_nodes2).move[1]
-
         return (best_child1, best_child2)
     
-    def play(self, num_games: int = 1) -> None:
-        """play num_games games
-
-        :param num_games: number of games played, defaults to 1
-        :type num_games: int, optional
-        """        
-        self.curr_game.reset()
-        self.curr_node = self.root
-        i = 0
-        while i<num_games:
-            move = self.best_move()
-            if move == None:
-                print("Game",i,"over")
-                print("result: ",self.curr_game.lose1," ", self.curr_game.lose2)
-                i+=1
-                self.curr_game.reset()
-                self.curr_node = self.root
-                continue
-            if self.game_over(self.curr_game):
-                i+=1
-                print("Game",i,"over")
-                print("result: ",self.curr_game.lose1," ", self.curr_game.lose2)
-                self.curr_game.reset()
-                self.curr_node = self.root
-                continue
-            self.move(move)
-
 
 
     
@@ -440,7 +452,7 @@ class MCTS:
                 board[player2[0]+child.move[0][0],player2[1]+child.move[1][1],2] = 1
                 board[player1[0],player1[1],0] = 1
                 board[player2[0],player2[1],0] = 1
-                probs[child.move[0]-1] += child.value()[0]
+                probs[child.move[0]-1] += child.value(self.use_ucb1)[0]
                 queue.put((child,child_board))
             probs_buffer.append(probs)
 
@@ -472,28 +484,33 @@ class MCTS:
         # for move in moves:
         pass
 
-
+def play_against_rand(smmcts: MCTS, num_games: int = 10):
+    jogo = s.Surround(human_render=False)
+    jogo.reset()
+    wins = 0
+    for i in range(num_games):
+        while True:
+            moves = smmcts.best_move()
+            if moves is None:
+                moves =(1,1)
+            rd = smmcts.legal_moves(jogo)
+            if len(rd):
+                rd = random.choice(rd)
+                moves = (moves[0],rd[1])
+            reward, old_board, board, lose1, lose2 = jogo.step(moves)
+            smmcts.move(moves)
+            if lose1 or lose2:
+                if lose2:
+                    wins += 1
+                print("win rate:", wins/(i+1))
+                break
+    return wins/num_games
 
     
 if __name__ == "__main__":
-    smmcts = MCTS()
+    
+    smmcts = MCTS(False)
     smmcts.search(10000)
-
-
-    x = input("Let's play")
-    jogo = s.Surround(human_render=True, human_controls=0, frame_rate=10)
-    jogo.reset()
-    x = 1
-    tempo = time.time()
-    while x < 10000:
-        y = 1
-        while y < 100:
-            move = (1,1)
-            if smmcts.best_move() != None:
-                move = smmcts.best_move()
-            reward, old_board, board, lose1, lose2 = jogo.step(move)
-            smmcts.move(move)
-            y += 1
-        x += 1
-        print(x)
+    print(play_against_rand(smmcts,1000))
+    
     

@@ -12,29 +12,45 @@ import surround as s
 class MCTS():
 
     def __init__(self, player:'NeuralNet', adversary:'NeuralNet') -> None:
-        self.encoder = s.Encoding()
-        self.boards_in_tree = set()
+        """ Init the Monte Carlo Tree Search
+
+        :param player: Neural Network to train
+        :type player: NeuralNet
+        :param adversary: Neural Network to play against
+        :type adversary: NeuralNet
+        """
         self.player = player
         self.adversary = adversary
         self.tree = {}
+        # Game to be played
         self.game = s.Surround()
         self.game.reset()
+        #Encoder of the board        
+        self.encoder = s.Encoding()
+        # Boards already in the tree
+        self.boards_in_tree = set()
 
     """{1: no, 2: no, 3: no, 4: no, acao: int, recompensa: int}"""
 
     def reset(self) -> None:
+        """Reset the game and the tree"""
         self.tree = {}
         self.game.reset()
 
     def terminal_game(self, game:s.Surround) -> int:
-
+        """Play a game until it ends"""
         while ((not game.lose1) and (not game.lose2)):
-            reward, *_ = game.step((self.player.play(game.board), self.adversary.play(game.board, player=2)))
+            reward, *_ = game.step((self.player.play(game), self.adversary.play(game, player=2)))
         
         del game
         return reward
     
     def forbiden_move(self) -> int:
+        """The forbiden move is the opposite of the last move of the player
+
+        :return: Forbiden move in the action space
+        :rtype: int
+        """        
         last_action = self.game.player1.last_action
         if last_action == 1:
             return 3
@@ -44,9 +60,20 @@ class MCTS():
             return 1
         else:
             return 2
-    def verify_chosen_action(self, board, action) -> bool:
+    
+    def verify_chosen_action(self, game, action) -> bool:
+        """ Verifies if the chosen action is already in the tree
+
+        :param game: _description_
+        :type game: _type_
+        :param action: _description_
+        :type action: _type_
+        :return: _description_
+        :rtype: bool
+        """        
+        board = game.board  
         ver_board = self.game.player1.move(board, action)
-        ver_board = self.game.player2.move(ver_board, self.adversary.play(board, player=2))
+        ver_board = self.game.player2.move(ver_board, self.adversary.play(self.game, player=2))
         ver_board = self.encoder.encode(ver_board)
         if ver_board in self.boards_in_tree:
             return True
@@ -63,14 +90,14 @@ class MCTS():
         node["forbiden_move"] = forbiden_move
         action_space.remove(forbiden_move)
         probs_action = self.player.predict(self.game.board)
-        fuzzy_prob_actions = probs_action + np.random.uniform(0, 0.1, 4)
-        fuzzy_prob_actions = fuzzy_prob_actions / np.sum(fuzzy_prob_actions)
-        chosen_action = np.argmax(fuzzy_prob_actions) + 1
+        fuzzy_prob_actions = probs_action + np.random.dirichlet(np.array([0.03]*4)).reshape(4,) 
+        chosen_action = np.argmax(probs_action) + 1
 
-        while self.verify_chosen_action(self.game.board, chosen_action):
-            fuzzy_prob_actions += + np.random.uniform(0, 0.1, 4)
-            fuzzy_prob_actions = fuzzy_prob_actions / np.sum(fuzzy_prob_actions)
-            chosen_action = np.argmax(fuzzy_prob_actions) + 1
+        ver_game = deepcopy(self.game)
+        while self.verify_chosen_action(self.game, chosen_action):
+            fuzzy_prob_actions += np.random.dirichlet(np.array([0.03]*4)).reshape(4,)
+            chosen_action = np.argmax(probs_action) + 1
+        del ver_game
         node["chosen_action"] = chosen_action
 
         for action in action_space:
@@ -80,7 +107,7 @@ class MCTS():
                 else:
                     reward = self.game.reward
                 node[action] = {"reward": reward}
-        reward, *_ = self.game.step((action, self.adversary.play(self.game.board, player=2)))
+        reward, *_ = self.game.step((action, self.adversary.play(self.game, player=2)))
 
         if (not (self.game.lose1 or self.game.lose2)):
             node[chosen_action] = self.grow_tree()
@@ -108,8 +135,6 @@ class MCTS():
         boards_buffer = []
         probs_buffer = []
         node = self.tree
-        
-
         
         while type(node) == type({1: 2}):
             # print("\n\n O NÓ:")
@@ -144,11 +169,10 @@ class MCTS():
         return boards_buffer, probs_buffer
 
 
-    def get_buffers(self):
-        boards_buffer = []
-        probs_buffer = []
+    def get_buffers(self, boards_buffer:list, probs_buffer:list):
 
-        while len(boards_buffer) < 200:
+        size = len(boards_buffer)
+        while len(boards_buffer) < size + 50:
             # print("tamanho do buffer: ", len(boards_buffer))
             self.reset()
             self.tree = self.grow_tree()
@@ -156,6 +180,4 @@ class MCTS():
             boards_buffer.extend(b_buffer)
             probs_buffer.extend(p_buffer)
 
-        boards_buffer = np.array(boards_buffer)
-        probs_buffer = np.array(probs_buffer)
         return boards_buffer, probs_buffer

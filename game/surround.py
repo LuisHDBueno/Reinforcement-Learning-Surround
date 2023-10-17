@@ -151,8 +151,6 @@ class Player():
             :param y_atualization: number of steps in y axis
             :type y_atualization: int
             """
-            # Fild the wall layer            
-            board[self.pos_x, self.pos_y, 0] = 1
 
             # Update the player position
             board[self.pos_x, self.pos_y, self.layer] = 0
@@ -163,6 +161,8 @@ class Player():
                 self.pos_x = BOARD_WIDTH - 1
             if self.pos_y > BOARD_HEIGHT - 1:
                 self.pos_y = BOARD_HEIGHT - 1
+            # Fild the wall layer            
+            board[self.pos_x, self.pos_y, 0] = 1
             board[self.pos_x, self.pos_y, self.layer] = 1
         
         match action:

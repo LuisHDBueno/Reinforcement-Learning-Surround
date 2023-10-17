@@ -1,3 +1,4 @@
 import numpy as np
 
-print(np.arange(4))
+lista = [np.array([1,2]), np.array([1,2]), np.array([1,2])]
+print(np.array(lista))

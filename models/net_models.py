@@ -5,6 +5,7 @@ import mcts as m
 from keras.layers import Conv2D, MaxPool2D, Flatten, Dense
 import os
 import sys
+from copy import deepcopy
 
 sys.path.append(os.path.join(os.path.dirname(__file__), '../game'))
 
@@ -46,7 +47,52 @@ class NeuralNet():
             return
         self.model.fit(boards, rewards, batch_size=batch_size, epochs=epochs, verbose=1)
 
-    def play(self, board: np.array, player: int = 1, eps:int = 0.03) -> int:
+    def check_out_of_bounds(self, pos_x, pos_y):
+
+        if pos_x > BOARD_WIDTH - 1:
+            return True
+        if pos_y > BOARD_HEIGHT - 1:
+            return True
+        return False
+    
+    def legal_moves(self,game: s.Surround) -> list[tuple[int]]:
+        """returns a list of legal moves for both players
+
+        :param game: game state
+        :type game: s.Surround
+        :return: list of legal moves for both players
+        :rtype: list[tuple[int]]
+        """        
+        board = game.board[:,:,0]
+        player1 = game.player1.pos_x, game.player1.pos_y
+        player2 = game.player2.pos_x, game.player2.pos_y
+        #print("board:", board.astype(np.int8))
+        #print("player1:", game.board[:,:,1].astype(np.int8))
+        #print("player2:", game.board[:,:,2].astype(np.int8))
+        moves1 = []
+        moves2 = []
+
+        if not self.check_out_of_bounds(player1[0]+1, player1[1]):
+            if not (board[player1[0]+1, player1[1]]): moves1.append(1)
+        if not self.check_out_of_bounds(player1[0], player1[1]+1):
+            if not (board[player1[0], player1[1]+1]): moves1.append(2)
+        if not self.check_out_of_bounds(player1[0]-1, player1[1]):
+            if not (board[player1[0]-1, player1[1]]): moves1.append(3)
+        if not self.check_out_of_bounds(player1[0], player1[1]-1):
+            if not (board[player1[0], player1[1]-1]): moves1.append(4)
+
+        if not self.check_out_of_bounds(player2[0]+1, player2[1]):
+            if not (board[player2[0]+1, player2[1]]): moves2.append(1)
+        if not self.check_out_of_bounds(player2[0], player2[1]+1):
+            if not (board[player2[0], player2[1]+1]): moves2.append(2)
+        if not self.check_out_of_bounds(player2[0]-1, player2[1]):
+            if not (board[player2[0]-1, player2[1]]): moves2.append(3)
+        if not self.check_out_of_bounds(player2[0], player2[1]-1):
+            if not (board[player2[0], player2[1]-1]): moves2.append(4)
+
+        return moves1, moves2
+
+    def play(self, game, player: int = 1, eps:int = 0.03) -> int:
         """Choose the best action to play.
 
         :param board: Current game board
@@ -58,15 +104,34 @@ class NeuralNet():
         """
         # if np.random.uniform(0, 1) < eps:
         #     return np.random.randint(1, 5)
-        if player == 1:            
-            best_action = np.random.choice(4, p=self.predict(board).reshape(4,))
+        board = game.board
+        moves1, moves2 = self.legal_moves(game)
+        if player == 1:
+            predict = self.predict(board).reshape(4,)
+            fuzzy = predict + np.random.dirichlet(np.array([0.03]*4)).reshape(4,)          
+            best_action = np.argmax(fuzzy)
+            if best_action in moves1:
+                best_action = best_action + 1
+            elif moves1 == []:
+                best_action = game.player1.last_action
+            else:
+                best_action = np.random.choice(moves1)
+
         elif player == 2:
             board[:,:,0] = np.matmul(board[:,:,0], PERMUTATION_MATRIX)
             board[:,:,1] = np.matmul(board[:,:,1], PERMUTATION_MATRIX)
             board[:,:,2] = np.matmul(board[:,:,2], PERMUTATION_MATRIX)
             board[:, :, 1], board[:, :, 2] = board[:, :, 2], board[:, :, 1]
-            best_action = np.random.choice(4, p=self.predict(board).reshape(4,))
-        return best_action + 1
+            predict = self.predict(board).reshape(4,)
+            fuzzy = predict + np.random.dirichlet(np.array([0.03]*4)).reshape(4,)          
+            best_action = np.argmax(fuzzy)
+            if best_action in moves2:
+                best_action = best_action + 1
+            elif moves2 == []:
+                best_action = game.player2.last_action
+            else:
+                best_action = np.random.choice(moves2)
+        return best_action
     
     def get_win_rate(self, adversary: 'NeuralNet', num_games: int = 50) -> float:
         """Get the win rate of the model against a fixed adversary.
@@ -88,8 +153,8 @@ class NeuralNet():
 
         for _ in range(num_games):
             while True:
-                model_action = self.play(game.board)
-                adversary_action = adversary.play(game.board, 2)
+                model_action = self.play(game)
+                adversary_action = adversary.play(game, 2)
                 _, _, _, lose1, lose2 = game.step((model_action, adversary_action))
                 if lose1 and lose2:
                     win_history.append(0)
@@ -123,17 +188,20 @@ class NeuralNet():
 
             return np.array([win_rate])
         else:
+            #grow_tree_model = deepcopy(self)
             mcts = m.MCTS(self, adversary)
             win_rate_history = np.array([win_rate])
             print(f'Win rate: {win_rate}')
             print("Trainment needed, proceding to trainment...")
 
             trainment_step = 1
-
+            boards_buffer = []
+            probs_buffer = []
             while win_rate < min_win_rate:
-                boards_buffer, probs_buffer = mcts.get_buffers() # ATTENTION: MCTS is not implemented yet
-                print("criei o buffer", boards_buffer.shape, probs_buffer.shape)
-                self.fit(boards_buffer, probs_buffer, epochs=10)
+                boards_buffer, probs_buffer = mcts.get_buffers([], []) # ATTENTION: MCTS is not implemented yet
+                array_boards_buffer = np.array(boards_buffer)
+                array_probs_buffer = np.array(probs_buffer)
+                self.fit(array_boards_buffer, array_probs_buffer, epochs=10)
                 
                 win_rate = self.get_win_rate(adversary)
                 win_rate_history = np.append(win_rate_history, win_rate)
@@ -144,7 +212,10 @@ class NeuralNet():
 
                 if trainment_step == 5:
                     break
-            
+            #del grow_tree_model
+            del mcts
+            del boards_buffer
+            del probs_buffer
             return win_rate_history
         
     def save(self, file_name: str) -> None:

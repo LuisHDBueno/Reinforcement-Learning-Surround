@@ -34,7 +34,7 @@ The aim of this project is to solve the Atari game Surround (shown in the figure
 
 The enviroment used in the original Surround game is a 11 x 11 grid where two snakes move around, leaving a trail behind them. On the Atari 2600 version, just one player controls the snake and the other snake is controlled by the computer. 
 
-For this project, we recreated the game using a 16 x 16 grid where the two snakes are controlled by the users' inputs (as described in <a href="#usage-guide">Usage Guide</a>).
+For this project, we recreated the game using PyGame a 16 x 16 grid where the two snakes are controlled by the users' inputs (as described in <a href="#usage-guide">Usage Guide</a>).
 
 ## Observation Space
 
@@ -79,7 +79,7 @@ Notice that, at each moment, the snake can't move to the opposite direction of i
 In our implementation, rewards are only applied to player 1. Winning an episode grants +100 points, losing an episode means receiving -100 points and a tie gives -10 points.
 
 # Solving the Problem
-We implemented two variations of an AlphaGo-like approach to solve the problem, using Monte Carlo Tree Search (MCTS). The first relies solely on MCTS, while the second uses a neural network to guide the tree expansion, learning how to evaluate the game state and how to select the best action.
+We implemented two variations of an AlphaGo-like approach to solve the problem, using Monte Carlo Tree Search (MCTS). The first relies solely on MCTS, while the second uses a neural network to guide the tree expansion, learning how to evaluate the game state and how to select the best action. We considered the problem solved if the trained models were capable of winning against a "clever random player", that is, one that chooses randomly among the set of actions that would not lead to its death.
 
 ## Algorithm 1: Pure Monte Carlo Tree Search
 MCTS builds up a tree where each node represents a game state. Using UCB, we choose which node to expand, until we reach a leaf node. Then, we simulate the game from that node until the end. Finally, we backpropagate the result of the simulation to the root node, updating the nodes' statistics.
@@ -100,6 +100,7 @@ This variation adds a neural network to the MCTS algorithm. The neural network i
 ### Results
 
 # Conclusion
+The trained models proved themselves capable of winning against a clever random player. Although the results are not impressive, we believe that better performance could be achieved with better hardware, more training time and by applying other heuristics to the MCTS algorithm.
 
 # Usage Guide
 In order to run the code, you must have Python 3.11 and the modules listed in the requirements.txt file installed. We recommend using a virtual environment:

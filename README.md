@@ -34,7 +34,7 @@ The aim of this project is to solve the Atari game Surround (shown in the figure
 
 The enviroment used in the original Surround game is a 11 x 11 grid where two snakes move around, leaving a trail behind them. On the Atari 2600 version, just one player controls the snake and the other snake is controlled by the computer. 
 
-The version used in this project is a 16 x 16 grid where the two snakes are controlled by the users' inputs (as described in <a href="#usage-guide">Usage Guide</a>).
+For this project, we recreated the game using a 16 x 16 grid where the two snakes are controlled by the users' inputs (as described in <a href="#usage-guide">Usage Guide</a>).
 
 ## Observation Space
 
@@ -75,22 +75,27 @@ The snakes' movements are based on the board's perspective, so pressing the up a
 
 Notice that, at each moment, the snake can't move to the opposite direction of its current movement. For instance, if the snake is moving to the right, it can't move to the left, so the action left will be considered as the continue action, which is equivalent to going to the right.
 
-# Solving the Problem
-We implemented two variations of an AlphaGo-like approach to solve the problem, using Monte Carlo Tree Search (MCTS) and a neural network to evaluate the states. The first variation uses a simple dense neural network to evaluate the states, while the second variation uses a convolutional neural network (CNN).
+## Rewards
+In our implementation, rewards are only applied to player 1. Winning an episode grants +100 points, losing an episode means receiving -100 points and a tie gives -10 points.
 
-## Algorithm 1
+# Solving the Problem
+We implemented two variations of an AlphaGo-like approach to solve the problem, using Monte Carlo Tree Search (MCTS). The first relies solely on MCTS, while the second uses a neural network to guide the tree expansion, learning how to evaluate the game state and how to select the best action.
+
+## Algorithm 1: Pure Monte Carlo Tree Search
+MCTS builds up a tree where each node represents a game state. Using UCB, we choose which node to expand, until we reach a leaf node. Then, we simulate the game from that node until the end. Finally, we backpropagate the result of the simulation to the root node, updating the nodes' statistics.
 
 ### Training
-
-### Testing
 
 ### Results
 
 ## Algorithm 2
+This variation adds a neural network to the MCTS algorithm. The neural network is used to evaluate the game state and to select the best action. The neural network is trained playing against itself, until it becomes capable of achieving a certain win rate against its past version. As explained in the AlphaGo Zero paper (Silver _et al_., 2017):
+
+```
+"AlphaGo becomes its own teacher: a neural network is trained to predict AlphaGo’s own move selections and also the winner of AlphaGo’s games. This neural network improves the strength of the tree search, resulting in higher quality move selection and stronger self-play in the next iteration."
+```
 
 ### Training
-
-### Testing
 
 ### Results
 
@@ -135,13 +140,19 @@ In order to run the code, you must have Python 3.11 and the modules listed in th
   For a one human player game, the controls are WASD. For a two human player game, the controls are WASD for the first player and the arrow keys for the second player.
 
 # References
+The theoretical basis and implementation of this project were based on the following references:
+
 LANCTOT, Marc; WITTLINGER, Christopher; WINANDS, Mark H. M.; TEULING, Niek G. P. Den. Monte Carlo Tree Search for Simultaneous
 Move Games: A Case Study in the Game of Tron. **Proceedings of Computer Games Workshop**. 2012. Available at: <https://dke.maastrichtuniversity.nl/m.winands/documents/sm-tron-bnaic2013.pdf>. Access on: 2023/10/15.
 
 LAPAN, Maxim. **Deep Reinforcement Learning Hands-On**. 2nd Edition. Packt Publishing, 2020.
 
 PREICK, Pierre; ST-PIERRE, David L.; MAES, Francis; ERNST, Damien. Comparison of Different Selection Strategies in Monte-Carlo Tree
-Search for the Game of Tron. **IEEE Conference on Computational Intelligence and Games (CIG)**, Granada, Spain, 2012, pp. 242-249, doi: 10.1109/CIG.2012.6374162.
+Search for the Game of Tron. **IEEE Conference on Computational Intelligence and Games (CIG)**, Granada, Spain, 2012, pp. 242-249, DOI: 10.1109/CIG.2012.6374162.
+
+SILVER, D., HUANG, A., MADDISON, C. _et al_. Mastering the game of Go with deep neural networks and tree search. **Nature**, n. 529, p. 484–489 (2016). DOI: 10.1038/nature16961
+
+SILVER, D.; SCHRITTWIESER, J.; SIMONYAN, K. _et al_. Mastering the game of Go without human knowledge. **Nature**, n. 550, p. 354–359 (2017). DOI: 10.1038/nature24270
 
 SLOANE, Andy. **Google AI Challenge post-mortem**. 2011. Available at: <https://web.archive.org/web/20111230055046/http://a1k0n.net/2010/03/04/google-ai-postmortem.html>. Access on: 2023/10/15.
 

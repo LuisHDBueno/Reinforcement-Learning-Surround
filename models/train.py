@@ -2,7 +2,7 @@ import numpy as np
 import seaborn as sns
 import net_models as nm
 from copy import deepcopy
-def train_model(model: str, save_rate: int = 5, train_iterations: int = 10, min_win_rate: int = 0.6) -> None:
+def train_model(model: str, save_rate: int = 5, train_iterations: int = 10, min_win_rate: int = 0.2) -> None:
     """Train the model until it reaches a win rate of 0.55 against the adversary.
 
     :param model: _description_
@@ -35,7 +35,7 @@ def train_model(model: str, save_rate: int = 5, train_iterations: int = 10, min_
             print("Passo 2")
 
         agent1.save(f'./saved_models/{model}')
-        
+
         print("Passo 3")
 
         graph = sns.lineplot(data=win_rate_history)

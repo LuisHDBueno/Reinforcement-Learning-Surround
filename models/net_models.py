@@ -56,16 +56,16 @@ class NeuralNet():
         :return: Best action to play
         :rtype: int
         """
-        if np.random.uniform(0, 1) < eps:
-            return np.random.randint(1, 5)
+        # if np.random.uniform(0, 1) < eps:
+        #     return np.random.randint(1, 5)
         if player == 1:            
-            best_action = np.argmax(self.predict(board))
+            best_action = np.random.choice(4, p=self.predict(board).reshape(4,))
         elif player == 2:
             board[:,:,0] = np.matmul(board[:,:,0], PERMUTATION_MATRIX)
             board[:,:,1] = np.matmul(board[:,:,1], PERMUTATION_MATRIX)
             board[:,:,2] = np.matmul(board[:,:,2], PERMUTATION_MATRIX)
             board[:, :, 1], board[:, :, 2] = board[:, :, 2], board[:, :, 1]
-            best_action = np.argmax(self.predict(board))
+            best_action = np.random.choice(4, p=self.predict(board).reshape(4,))
         return best_action + 1
     
     def get_win_rate(self, adversary: 'NeuralNet', num_games: int = 50) -> float:
@@ -183,7 +183,7 @@ class DenseNet(NeuralNet):
         # Hidden layers
         for _ in range(n_layers - 1):
             self.model.add(Dense(n_neurons, activation='relu',
-                                  kernel_regularizer = tf.keras.regularizers.l2(0.01)))
+                                  kernel_regularizer = tf.keras.regularizers.l2(0.0001)))
         # Output layer
         self.model.add(Dense(4, activation='softmax'))
         
@@ -214,7 +214,7 @@ class ConvolutionNet(NeuralNet):
         for _ in range(n_conv_layers // 2):
             self.model.add(Conv2D(32, (4, 4), activation='relu', padding='same',
                                    input_shape = input_shape,
-                                   kernel_regularizer=tf.keras.regularizers.l2(0.01)))
+                                   kernel_regularizer=tf.keras.regularizers.l2(0.0001)))
             
         self.model.add(MaxPool2D(pool_size=(2, 2), padding='same'))
 

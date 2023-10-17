@@ -1,7 +1,7 @@
 import numpy as np
 import tensorflow as tf
 from keras.models import Sequential
-import new_mcts as m
+import mcts as m
 from keras.layers import Conv2D, MaxPool2D, Flatten, Dense
 import os
 import sys
@@ -41,6 +41,9 @@ class NeuralNet():
         :param epochs: Number of trainment epochs, defaults to 1
         :type epochs: int, optional
         """
+        if len(boards) == 0:
+            print("No boards to fit")
+            return
         self.model.fit(boards, rewards, batch_size=batch_size, epochs=epochs, verbose=1)
 
     def play(self, board: np.array, player: int = 1, eps:int = 0.05) -> int:
@@ -56,7 +59,7 @@ class NeuralNet():
         if np.random.uniform(0, 1) < eps:
             return np.random.randint(1, 5)
         if player == 1:            
-            best_action = np.argmax(self.predict(board))
+            best_action = np.argmax(self.predict(board)).astype(int)
         elif player == 2:
             board[:,:,0] = np.matmul(board[:,:,0], PERMUTATION_MATRIX)
             board[:,:,1] = np.matmul(board[:,:,1], PERMUTATION_MATRIX)
@@ -65,7 +68,7 @@ class NeuralNet():
             best_action = np.argmax(self.predict(board))
         return best_action + 1
     
-    def get_win_rate(self, adversary: 'NeuralNet', num_games: int = 20) -> float:
+    def get_win_rate(self, adversary: 'NeuralNet', num_games: int = 50) -> float:
         """Get the win rate of the model against a fixed adversary.
 
         :param adversary: Neural network to play against
@@ -129,7 +132,7 @@ class NeuralNet():
 
             while win_rate < min_win_rate:
                 boards_buffer, probs_buffer = mcts.get_buffers() # ATTENTION: MCTS is not implemented yet
-                print("criei o buffer")
+                print("criei o buffer", boards_buffer.shape, probs_buffer.shape)
                 self.fit(boards_buffer, probs_buffer, epochs=10)
                 
                 win_rate = self.get_win_rate(adversary)
@@ -185,7 +188,7 @@ class DenseNet(NeuralNet):
         optimizer = tf.keras.optimizers.Adam(learning_rate = learning_rate)
         self.model.compile(optimizer=optimizer,
                             loss="mean_squared_error",
-                            metrics=[tf.keras.metrics.RootMeanSquaredError()])
+                            metrics=[tf.keras.metrics.RootMeanSquaredError()], run_eagerly=True)
 
 class ConvolutionNet(NeuralNet):
     def __init__(self, n_conv_layers: int = 6, n_dense_layers: int = 3, n_neurons: int = 256,
@@ -228,4 +231,4 @@ class ConvolutionNet(NeuralNet):
         self.model.add(Dense(4, activation='softmax'))
         optimizer = tf.keras.optimizers.Adam(learning_rate = learning_rate)
         self.model.compile(optimizer=optimizer, loss="mean_squared_error",
-                            metrics=[tf.keras.metrics.RootMeanSquaredError()])
+                            metrics=[tf.keras.metrics.RootMeanSquaredError()], run_eagerly=True)

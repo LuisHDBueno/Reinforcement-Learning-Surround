@@ -152,7 +152,10 @@ class Player():
 
             self.pos_x += x_atualization
             self.pos_y += y_atualization
-
+            if self.pos_x > BOARD_WIDTH - 1:
+                self.pos_x = BOARD_WIDTH - 1
+            if self.pos_y > BOARD_HEIGHT - 1:
+                self.pos_y = BOARD_HEIGHT - 1
             board[self.pos_x, self.pos_y, self.layer] = 1
         
         match action:
@@ -295,6 +298,7 @@ class Surround():
         self.frame_rate = frame_rate
         self.lose1 = False
         self.lose2 = False
+        self.reward = 0
 
         if self.human_render:
             self.human_board = HumanBoard(self.frame_rate)
@@ -407,6 +411,7 @@ class Surround():
                 reward = 0
         self.lose1 = lose1
         self.lose2 = lose2
+        self.reward = reward
         return reward, old_board, self.board, lose1, lose2
 
 class Encoding:

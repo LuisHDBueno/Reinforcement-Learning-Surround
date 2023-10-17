@@ -201,6 +201,11 @@ class NeuralNet():
                 boards_buffer, probs_buffer = mcts.get_buffers([], []) # ATTENTION: MCTS is not implemented yet
                 array_boards_buffer = np.array(boards_buffer)
                 array_probs_buffer = np.array(probs_buffer)
+
+                one_hot_probs = np.zeros((array_probs_buffer.shape[0], 4))
+                one_hot_probs[np.arange(array_probs_buffer.shape[0]), np.argmax(array_probs_buffer, axis=1)] = 1
+                array_probs_buffer = one_hot_probs
+
                 self.fit(array_boards_buffer, array_probs_buffer, epochs=10)
                 
                 win_rate = self.get_win_rate(adversary)
@@ -257,12 +262,8 @@ class DenseNet(NeuralNet):
                                   kernel_regularizer = tf.keras.regularizers.l2(0.0001)))
         # Output layer
         self.model.add(Dense(4, activation='softmax'))
-        
-        # Optimizer
-        optimizer = tf.keras.optimizers.Adam(learning_rate = learning_rate)
-        self.model.compile(optimizer=optimizer,
-                            loss="mean_squared_error",
-                            metrics=[tf.keras.metrics.RootMeanSquaredError()], run_eagerly=True)
+        self.model.compile(optimizer='adam', loss="categorical_crossentropy",
+                            metrics=[tf.keras.metrics.CategoricalAccuracy(), tf.keras.metrics.CategoricalCrossentropy()], run_eagerly=True)
 
 class ConvolutionNet(NeuralNet):
     def __init__(self, n_conv_layers: int = 6, n_dense_layers: int = 3, n_neurons: int = 256,
@@ -303,6 +304,5 @@ class ConvolutionNet(NeuralNet):
         
         # Output layer
         self.model.add(Dense(4, activation='softmax'))
-        optimizer = tf.keras.optimizers.Adam(learning_rate = learning_rate)
-        self.model.compile(optimizer=optimizer, loss="mean_squared_error",
-                            metrics=[tf.keras.metrics.RootMeanSquaredError()], run_eagerly=True)
+        self.model.compile(optimizer='adam', loss="categorical_crossentropy",
+                            metrics=[tf.keras.metrics.CategoricalAccuracy(), tf.keras.metrics.CategoricalCrossentropy()], run_eagerly=True)

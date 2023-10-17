@@ -35,6 +35,7 @@ def train_model(model: str, save_rate: int = 5, train_iterations: int = 10, min_
             print("Passo 2")
 
         agent1.save(f'./saved_models/{model}')
+        
         print("Passo 3")
 
         graph = sns.lineplot(data=win_rate_history)

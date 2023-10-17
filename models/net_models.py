@@ -29,7 +29,7 @@ class NeuralNet():
         """         
         return self.model.predict(board.reshape(1, BOARD_WIDTH, BOARD_HEIGHT, 3), verbose=0)
         
-    def fit(self, boards: np.array, rewards: np.array, batch_size: int = 64, epochs: int = 1) -> None:
+    def fit(self, boards: np.array, rewards: np.array, batch_size: int = 32, epochs: int = 1) -> None:
         """Fit the model with the given boards and rewards.
 
         :param boards: Array of boards from Monte Carlo Tree Search
@@ -46,7 +46,7 @@ class NeuralNet():
             return
         self.model.fit(boards, rewards, batch_size=batch_size, epochs=epochs, verbose=1)
 
-    def play(self, board: np.array, player: int = 1, eps:int = 0.05) -> int:
+    def play(self, board: np.array, player: int = 1, eps:int = 0.03) -> int:
         """Choose the best action to play.
 
         :param board: Current game board
@@ -59,7 +59,7 @@ class NeuralNet():
         if np.random.uniform(0, 1) < eps:
             return np.random.randint(1, 5)
         if player == 1:            
-            best_action = np.argmax(self.predict(board)).astype(int)
+            best_action = np.argmax(self.predict(board))
         elif player == 2:
             board[:,:,0] = np.matmul(board[:,:,0], PERMUTATION_MATRIX)
             board[:,:,1] = np.matmul(board[:,:,1], PERMUTATION_MATRIX)
@@ -141,6 +141,9 @@ class NeuralNet():
                 print(f'Win rate: {win_rate}')
                 print("Trainment step:", trainment_step)
                 trainment_step += 1
+
+                if trainment_step == 5:
+                    break
             
             return win_rate_history
         

@@ -148,8 +148,8 @@ class MCTS():
         boards_buffer = []
         probs_buffer = []
 
-        while len(boards_buffer) < 100:
-            print("tamanho do buffer: ", len(boards_buffer))
+        while len(boards_buffer) < 200:
+            # print("tamanho do buffer: ", len(boards_buffer))
             self.reset()
             self.tree = self.grow_tree()
             b_buffer, p_buffer = self.tree_to_list()

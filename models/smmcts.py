@@ -535,7 +535,7 @@ def play_against_rand(smmcts: MCTS, num_games: int = 10) -> float:
                 break
     return wins/num_games
 
-def play_human(smmcts: MCTS,frame_rate: int = 7):
+def play_human(smmcts: MCTS, frame_rate: int = 5):
     """play against human
 
     :param smmcts: MCTS used to play
@@ -557,11 +557,11 @@ def play_human(smmcts: MCTS,frame_rate: int = 7):
             smmcts.curr_node = smmcts.root
 
 def mcts_battle(mcts1,mcts2, num_games = 10, render = False) -> list[tuple[int,int]]:
-    jogo = s.Surround(human_render=render, human_controls=0)
+    jogo = s.Surround(human_render=True, human_controls=0, frame_rate=5)
     jogo.reset()
     loses = []
-    i=0
-    while i <num_games:
+    i = 0
+    while i < num_games:
         moves1 = mcts1.best_move()
         moves2 = mcts2.best_move()
         

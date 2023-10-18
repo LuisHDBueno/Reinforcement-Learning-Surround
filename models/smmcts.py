@@ -280,7 +280,7 @@ class MCTS:
         while not lose1 and not lose2:
             moves = self.legal_moves(game)
             if len(moves):
-                _,_,_,lose1,lose2 = game.step(random.choice(moves))
+                _,_,_,lose1,lose2, _ = game.step(random.choice(moves))
             else:
                 lose1, lose2 = True, True
         if lose1 and lose2:
@@ -532,7 +532,7 @@ def play_against_rand(smmcts: MCTS, num_games: int = 10) -> float:
             if len(rd):
                 rd = random.choice(rd)
                 moves = (moves[0],rd[1])
-            reward, old_board, board, lose1, lose2 = jogo.step(moves)
+            reward, old_board, board, lose1, lose2, _ = jogo.step(moves)
             smmcts.move(moves)
             if lose1 or lose2:
                 if lose2:

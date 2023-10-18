@@ -161,7 +161,7 @@ class NeuralNet():
             while True:
                 model_action = self.play(game)
                 adversary_action = adversary.play(game, 2)
-                _, _, _, lose1, lose2 = game.step((model_action, adversary_action))
+                _, _, _, lose1, lose2, _ = game.step((model_action, adversary_action))
                 if lose1 and lose2:
                     win_history.append(0)
                     break

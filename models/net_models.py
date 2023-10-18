@@ -287,16 +287,13 @@ class ConvolutionNet(NeuralNet):
         """
 
         self.model = Sequential()
-        for _ in range(n_conv_layers // 2):
-            self.model.add(Conv2D(32, (4, 4), activation='relu', padding='same',
+
+        self.model.add(Conv2D(32, (4, 4), activation='relu', padding='same',
                                    input_shape = input_shape,
                                    kernel_regularizer=tf.keras.regularizers.l2(0.001)))
-            
-        self.model.add(MaxPool2D(pool_size=(2, 2), padding='same'))
-
-        for _ in range(n_conv_layers - n_conv_layers // 2):
-            self.model.add(Conv2D(32, (2, 2), activation='relu', padding='same',
-                                   input_shape = input_shape,
+        
+        for _ in range(n_conv_layers - 1):
+            self.model.add(Conv2D(32, (4, 4), activation='relu', padding='same',
                                    kernel_regularizer=tf.keras.regularizers.l2(0.001)))
         
         self.model.add(Flatten())

@@ -161,8 +161,7 @@ class MCTS():
                 node_probs[node["forbiden_move"] - 1] = node_probs[0]
             else:
                 node_probs[node["forbiden_move"] - 1] = node_probs[1]
-            node_probs = node_probs.astype(np.float64)
-            node_probs = np.exp(node_probs) / np.sum(np.exp(node_probs))
+                
             probs_buffer.append(node_probs)
             chosen_action = node["chosen_action"]
             node = node[chosen_action]

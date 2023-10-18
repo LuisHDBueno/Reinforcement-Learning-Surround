@@ -23,24 +23,23 @@ def train_model(model: str, save_rate: int = 5, train_iterations: int = 10, min_
 
     win_rate_history = np.empty([0,])
 
-    for _ in range(int(train_iterations / save_rate)):
+    for i in range(train_iterations):
         print("Passo 1")
         
-        for _ in range(save_rate):
-            train_win_rate_history = agent1.train(adversary=agent2, min_win_rate=min_win_rate)
-            win_rate_history = np.append(win_rate_history, train_win_rate_history)
+        train_win_rate_history = agent1.train(adversary=agent2, min_win_rate=min_win_rate)
+        win_rate_history = np.append(win_rate_history, train_win_rate_history)
 
-            agent2 = deepcopy(agent1)
+        agent2 = deepcopy(agent1)
 
-            print("Passo 2")
+        print("Passo 2")
 
-        agent1.save(f'./saved_models/{model}')
+        agent1.save(f'./saved_models/{model}_{i}')
 
         print("Passo 3")
 
         graph = sns.lineplot(data=win_rate_history)
         graph.set(xlabel='Trainment step', ylabel='Win rate')
-        graph.figure.savefig(f'./saved_models/win_rate_history_{model}.png')
+        graph.figure.savefig(f'./saved_models/win_rate_history_{model}_{i}.png')
         print("Passo 4")
 
 if __name__ == '__main__':

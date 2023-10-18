@@ -495,17 +495,26 @@ class Encoding:
 
     
 if __name__ == "__main__":
-    jogo = Surround(human_render=True, human_controls=0, frame_rate=2)
+    jogo = Surround(human_render=True, human_controls=0, frame_rate=20)
     jogo.reset()
 
     model = nm.ConvolutionNet()
-    model.load('cnn')
-    for _ in range(10):
+    model.load('cnn_1')
+    model2 = nm.ConvolutionNet()
+    model2.load('cnn_0')
+    for _ in range(100):
         while True:
-            retorno = np.random.randint(5)
-            a = model.play(jogo.board)
-            reward, old_board, board, lose1, lose2 = jogo.step((a, retorno))
-            print(a, reward, lose1, lose2)
+
+            retorno = 0
+            c = 0
+            moves1, moves2 = model.legal_moves(jogo)
+            if len(moves2) > 0:
+                c = np.random.choice(moves2)
+            if len(moves1) > 0:
+                retorno = np.random.choice(moves1)
+            a = model.play(jogo, player=1)
+            b = model2.play(jogo, player=2)
+            reward, old_board, board, lose1, lose2 = jogo.step((a, b))
             
             if lose1 or lose2:
                 break

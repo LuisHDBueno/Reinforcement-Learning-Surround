@@ -108,25 +108,30 @@ class NeuralNet():
         moves1, moves2 = self.legal_moves(game)
         if player == 1:
             predict = self.predict(board).reshape(4,)
-            fuzzy = predict + np.random.dirichlet(np.array([0.03]*4)).reshape(4,)          
-            best_action = np.argmax(fuzzy)
+            best_action = np.argmax(fuzzy) + 1
             if best_action in moves1:
-                best_action = best_action + 1
+                best_action = best_action
             elif moves1 == []:
-                best_action = game.player1.last_action
+                best_action = 0
             else:
                 best_action = np.random.choice(moves1)
 
         elif player == 2:
+            board = deepcopy(board)
             board[:,:,0] = np.matmul(board[:,:,0], PERMUTATION_MATRIX)
             board[:,:,1] = np.matmul(board[:,:,1], PERMUTATION_MATRIX)
             board[:,:,2] = np.matmul(board[:,:,2], PERMUTATION_MATRIX)
-            board[:, :, 1], board[:, :, 2] = board[:, :, 2], board[:, :, 1]
+
+            board[:,:,1], board[:,:,2] = board[:,:,2], board[:,:,1]
+            
             predict = self.predict(board).reshape(4,)
-            fuzzy = predict + np.random.dirichlet(np.array([0.03]*4)).reshape(4,)          
-            best_action = np.argmax(fuzzy)
+            fuzzy = predict + 0.5 * np.random.dirichlet(np.array([0.03]*4)).reshape(4,)          
+            best_action = np.argmax(fuzzy) + 1
+
+            del board
+            
             if best_action in moves2:
-                best_action = best_action + 1
+                best_action = best_action
             elif moves2 == []:
                 best_action = game.player2.last_action
             else:
@@ -198,7 +203,8 @@ class NeuralNet():
             boards_buffer = []
             probs_buffer = []
             while win_rate < min_win_rate:
-                boards_buffer, probs_buffer = mcts.get_buffers([], []) # ATTENTION: MCTS is not implemented yet
+                print("====\nTrainment step:", trainment_step)
+                boards_buffer, probs_buffer = mcts.get_buffers(boards_buffer=boards_buffer, probs_buffer=probs_buffer) # ATTENTION: MCTS is not implemented yet
                 array_boards_buffer = np.array(boards_buffer)
                 array_probs_buffer = np.array(probs_buffer)
 
@@ -212,11 +218,8 @@ class NeuralNet():
                 win_rate_history = np.append(win_rate_history, win_rate)
 
                 print(f'Win rate: {win_rate}')
-                print("Trainment step:", trainment_step)
                 trainment_step += 1
 
-                if trainment_step == 5:
-                    break
             #del grow_tree_model
             del mcts
             del boards_buffer
@@ -286,21 +289,21 @@ class ConvolutionNet(NeuralNet):
         for _ in range(n_conv_layers // 2):
             self.model.add(Conv2D(32, (4, 4), activation='relu', padding='same',
                                    input_shape = input_shape,
-                                   kernel_regularizer=tf.keras.regularizers.l2(0.0001)))
+                                   kernel_regularizer=tf.keras.regularizers.l2(0.001)))
             
         self.model.add(MaxPool2D(pool_size=(2, 2), padding='same'))
 
-        for _ in range(n_conv_layers - n_conv_layers //2):
-            self.model.add(Conv2D(32, (4, 4), activation='relu', padding='same',
+        for _ in range(n_conv_layers - n_conv_layers // 2):
+            self.model.add(Conv2D(32, (2, 2), activation='relu', padding='same',
                                    input_shape = input_shape,
-                                   kernel_regularizer=tf.keras.regularizers.l2(0.01)))
+                                   kernel_regularizer=tf.keras.regularizers.l2(0.001)))
         
         self.model.add(Flatten())
 
         # Dense layers
         for _ in range(n_dense_layers - 1):
             self.model.add(Dense(n_neurons, activation='relu',
-                                  kernel_regularizer = tf.keras.regularizers.l2(0.01)))
+                                  kernel_regularizer = tf.keras.regularizers.l2(0.001)))
         
         # Output layer
         self.model.add(Dense(4, activation='softmax'))

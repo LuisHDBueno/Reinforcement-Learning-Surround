@@ -7,6 +7,8 @@ import random
 import time
 from queue import Queue
 import pickle
+import seaborn as sns
+import matplotlib.pyplot as plt
 sys.path.append(os.path.join(os.path.dirname(__file__), '../game'))
 import surround as s
 
@@ -412,12 +414,11 @@ class MCTS:
         :rtype: tuple[int,int]
         """        
         if self.game_over(self.curr_game):
-            return None
+            return (1,1)
         if self.curr_node.N<10:
             self.search_curr(50)
         if self.curr_node.children == {}:
-            print("no children")
-            return None
+            return (1,1)
         max_value1 = max(self.curr_node.children.values(), key=lambda child: child.get_win_rate(0)).get_win_rate(0)
         max_value2 = max(self.curr_node.children.values(), key=lambda child: child.get_win_rate(1)).get_win_rate(1)
         if max_value1 == 0:
@@ -444,7 +445,7 @@ class MCTS:
         if self.game_over(self.curr_game):
             return None
         start = time.time()
-        while time.time() - start < time_limit-0.02:
+        while time.time() - start < time_limit:
             self.search_curr(1)
         if self.curr_node.children == {}:
             print("no children")
@@ -553,22 +554,60 @@ def play_human(smmcts: MCTS,frame_rate: int = 7):
     while True:
         moves = smmcts.best_move_timer(1/frame_rate)
         if moves is None:
-            print('hi')
-            moves =(1,1)
+            moves = smmcts.legal_moves(jogo)
+            moves = random.choices(moves)[0]
         reward, old_board, board, lose1, lose2, action = jogo.step(moves)
-
-
         smmcts.move(action)
+        if lose1 or lose2:
+            smmcts.curr_game.reset()
+            smmcts.curr_node = smmcts.root
+
+def mcts_battle(mcts1,mcts2, num_games = 10, render = False) -> list[tuple[int,int]]:
+    jogo = s.Surround(human_render=render, human_controls=0)
+    jogo.reset()
+    loses = []
+    i=0
+    while i <num_games:
+        moves1 = mcts1.best_move()
+        moves2 = mcts2.best_move()
+        
+        moves = (moves1[0], moves2[1])
+        reward, old_board, board, lose1, lose2, action = jogo.step(moves)
+        mcts1.move(action)
+        mcts2.move(action)
+        if lose1 or lose2:
+            loses.append((lose1,lose2))
+            i+=1
+    return loses
 if __name__ == "__main__":
     
     smmcts = MCTS(True)
-    smmcts.time_search(9900)
-    with open("ucb1.pkl","wb") as f:
+    smmcts2 = MCTS(False)
+    loses = mcts_battle(smmcts,smmcts2, num_games= 100)
+    winrate_1, winrate_2 = [],[]
+    num_wins1, num_wins2 = 0,0
+    for i in range(100):
+        if loses[i][0] == 1 and loses[i][1] == 0:
+            num_wins1 +=1
+        if loses[i][1] == 1 and loses[i][0] == 0:
+            num_wins2 +=1
+        winrate_1.append(num_wins1/(i+1))
+        winrate_2.append(num_wins2/(i+1))
+    with open ("ucb12.pkl", "wb") as f:
         pickle.dump(smmcts,f)
-    smmcts = MCTS(False)
-    smmcts.time_search(9900)
-    with open("ucb1_tuned.pkl","wb") as f:
-        pickle.dump(smmcts,f)
+    with open("ucbt2.pkl", "wb") as f:
+        pickle.dump(smmcts2,f)
+    with open("winrate.txt", "w") as file:
+        for i in range(100):
+            file.write(f'{winrate_1[i]},{winrate_2[i]}\n')
+    plt.figure(12,8)
+    plt.plot(range(100),winrate_1,label = "ucb1", color ='b')
+    plt.plot(range(100),winrate_2,label = "ucb1 tuned", color = 'r')
+    plt.title('Winrate over time')  
+    plt.xlabel('Games')
+    plt.ylabel('Winrate')
+    plt.savefig("Winrate_mcts.png")
+
     
     
     

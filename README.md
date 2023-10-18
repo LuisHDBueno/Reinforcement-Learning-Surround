@@ -106,7 +106,7 @@ The trained models proved themselves capable of winning against a clever random 
 In order to run the code, you must have Python 3.11 and the modules listed in the requirements.txt file installed. We recommend using a virtual environment:
   
   ```bash
-  python3 -m venv rl-surround
+  python -m venv rl-surround
   
   source rl-surround/Scripts/activate 
   # rl-surround\Scripts\activate on Windows
@@ -117,19 +117,19 @@ In order to run the code, you must have Python 3.11 and the modules listed in th
   To play the game against our best model, run the following command:
   
   ```
-  python3 game/run_me.py challenge
+  python game/run_me.py challenge
   ```
 
   To play the game against a clever random model, run the following command:
   
   ```
-  python3 game/run_me.py random
+  python game/run_me.py random
   ```
 
   To play the game against a human player, run the following command:
   
   ```
-  python3 game/run_me.py human
+  python game/run_me.py human
   ```
 
   For a one human player game, the controls are WASD. For a two human player game, the controls are WASD for the first player and the arrow keys for the second player.

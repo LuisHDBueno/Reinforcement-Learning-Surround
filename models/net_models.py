@@ -108,6 +108,7 @@ class NeuralNet():
         moves1, moves2 = self.legal_moves(game)
         if player == 1:
             predict = self.predict(board).reshape(4,)
+            fuzzy = predict + 0.5 * np.random.dirichlet(np.array([0.03]*4)).reshape(4,)          
             best_action = np.argmax(fuzzy) + 1
             if best_action in moves1:
                 best_action = best_action

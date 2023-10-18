@@ -84,9 +84,8 @@ We implemented two variations of an AlphaGo-like approach to solve the problem, 
 ## Algorithm 1: Pure Monte Carlo Tree Search
 MCTS builds up a tree where each node represents a game state. Using UCB, we choose which node to expand, until we reach a leaf node. Then, we simulate the game from that node until the end. Finally, we backpropagate the result of the simulation to the root node, updating the nodes' statistics.
 
-### Training
-
 ### Results
+
 
 ## Algorithm 2
 This variation adds a neural network to the MCTS algorithm. The neural network is used to evaluate the game state and to select the best action. The neural network is trained playing against itself, until it becomes capable of achieving a certain win rate against its past version. As explained in the AlphaGo Zero paper (Silver _et al_., 2017):
@@ -95,9 +94,8 @@ This variation adds a neural network to the MCTS algorithm. The neural network i
 "AlphaGo becomes its own teacher: a neural network is trained to predict AlphaGo’s own move selections and also the winner of AlphaGo’s games. This neural network improves the strength of the tree search, resulting in higher quality move selection and stronger self-play in the next iteration."
 ```
 
-### Training
-
 ### Results
+
 
 # Conclusion
 The trained models proved themselves capable of winning against a clever random player. Although the results are not impressive, we believe that better performance could be achieved with better hardware, more training time and by applying other heuristics to the MCTS algorithm.

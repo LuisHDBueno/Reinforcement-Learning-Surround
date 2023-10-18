@@ -2,13 +2,6 @@ import numpy as np
 import pygame as pg
 import time
 import math
-import os
-import sys
-import tensorflow as tf
-
-sys.path.append(os.path.join(os.path.dirname(__file__), '../models'))
-
-import net_models as nm
 
 BOARD_HEIGHT = 16
 BOARD_WIDTH = 16
@@ -492,29 +485,3 @@ class Encoding:
         board = np.stack((game_state, player1, player2), axis=2)
 
         return board
-
-    
-if __name__ == "__main__":
-    jogo = Surround(human_render=True, human_controls=0, frame_rate=20)
-    jogo.reset()
-
-    model = nm.ConvolutionNet()
-    model.load('cnn_1')
-    model2 = nm.ConvolutionNet()
-    model2.load('cnn_0')
-    for _ in range(100):
-        while True:
-
-            retorno = 0
-            c = 0
-            moves1, moves2 = model.legal_moves(jogo)
-            if len(moves2) > 0:
-                c = np.random.choice(moves2)
-            if len(moves1) > 0:
-                retorno = np.random.choice(moves1)
-            a = model.play(jogo, player=1)
-            b = model2.play(jogo, player=2)
-            reward, old_board, board, lose1, lose2 = jogo.step((a, b))
-            
-            if lose1 or lose2:
-                break

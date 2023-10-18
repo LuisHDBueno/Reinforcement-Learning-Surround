@@ -24,6 +24,9 @@ if __name__ == "__main__":
 
     elif parameters[0] == "challenge":
         game = s.Surround(human_render=True, human_controls=1, frame_rate=5)
+        game.reset()
+
+        pass # ATTENTION: This code is not finished yet
 
     elif parameters[0] == "random":
         game = s.Surround(human_render=True, human_controls=1, frame_rate=5)

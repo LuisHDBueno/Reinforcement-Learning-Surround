@@ -26,7 +26,7 @@ if __name__ == "__main__":
         game = s.Surround(human_render=True, human_controls=1, frame_rate=5)
 
     elif parameters[0] == "random":
-        game = s.Surround(human_render=True, human_controls=0, frame_rate=5)
+        game = s.Surround(human_render=True, human_controls=1, frame_rate=5)
         game.reset()
 
         model = DenseNet()
@@ -36,14 +36,11 @@ if __name__ == "__main__":
                 moves1, moves2 = model.legal_moves(game)
 
                 a = 0
-                b = 0
 
-                if len(moves1) > 0:
-                    a = moves1[np.random.randint(len(moves1))]
                 if len(moves2) > 0:
-                    b = moves2[np.random.randint(len(moves2))]
+                    a = moves2[np.random.randint(len(moves2))]
 
-                game.step((a, b))
+                game.step((0, a))
                 if game.lose1 or game.lose2:
                     break
 

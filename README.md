@@ -117,19 +117,19 @@ In order to run the code, you must have Python 3.11 and the modules listed in th
   To play the game against our best model, run the following command:
   
   ```
-  python3 game/surround.py challenge
+  python3 game/run_me.py challenge
   ```
 
   To play the game against a clever random model, run the following command:
   
   ```
-  python3 game/surround.py random
+  python3 game/run_me.py random
   ```
 
   To play the game against a human player, run the following command:
   
   ```
-  python3 game/surround.py human
+  python3 game/run_me.py human
   ```
 
   For a one human player game, the controls are WASD. For a two human player game, the controls are WASD for the first player and the arrow keys for the second player.

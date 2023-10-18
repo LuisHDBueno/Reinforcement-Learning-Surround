@@ -62,7 +62,13 @@ class Node:
         return self.Q[player]/self.N + np.sqrt(2*(np.log(self.parent.N))/self.N)
     
     def var(self, player:bool) -> float:
+        """calculate variance of the node for given player
 
+        :param player: 0 for player 1, 1 for player 2
+        :type player: bool
+        :return: variance
+        :rtype: float
+        """        
         if self.N == 0 or len(self.children) <=1:
             return np.inf
         m = np.mean([child.Q[player]/child.N for child in self.children.values()])
@@ -350,8 +356,15 @@ class MCTS:
                     self.back_propagate(child, outcome)
             
                 
-                
-        
+    def time_search(self, time_limit: float = 1.0):
+        """Grow tree until time limit
+
+        :param time_limit: time limit, defaults to 1.0
+        :type time: float, optional
+        """        
+        start_time = time.time()
+        while time.time() - start_time < time_limit:
+            self.search(1)
     def search_curr(self, count: int = 50) -> None:
         """Grow tree
 
@@ -495,24 +508,17 @@ class MCTS:
         """        
         return self.node_count
     
-    def get_game(self,node = None):
 
-        # if node == None:
-        #     node = self.root
-        
-        # moves = []
-        # while node.parent is not None:
-        #     moves.append(node.move)
-        #     node = node.parent
-        # moves.reverse()
-        
-        # game = s.Surround()
-        # game.reset()
-        # boa
-        # for move in moves:
-        pass
+def play_against_rand(smmcts: MCTS, num_games: int = 10) -> float:
+    """play against random agent
 
-def play_against_rand(smmcts: MCTS, num_games: int = 10):
+    :param smmcts: MCTS used to play
+    :type smmcts: MCTS
+    :param num_games: number of games, defaults to 10
+    :type num_games: int, optional
+    :return: winrate
+    :rtype: float
+    """    
     jogo = s.Surround(human_render=False)
     jogo.reset()
     wins = 0
@@ -534,7 +540,14 @@ def play_against_rand(smmcts: MCTS, num_games: int = 10):
                 break
     return wins/num_games
 
-def play_human(smmcts,frame_rate):
+def play_human(smmcts: MCTS,frame_rate: int = 7):
+    """play against human
+
+    :param smmcts: MCTS used to play
+    :type smmcts: MCTS
+    :param frame_rate: frame rate of the game
+    :type frame_rate: int
+    """    
     jogo = s.Surround(human_render=True, human_controls=1,frame_rate=frame_rate)
     jogo.reset()
     while True:
@@ -548,7 +561,14 @@ def play_human(smmcts,frame_rate):
         smmcts.move(action)
 if __name__ == "__main__":
     
-    smmcts = MCTS()
-    play_human(smmcts,20)
+    smmcts = MCTS(True)
+    smmcts.time_search(7200)
+    with open("ucb1.pkl","wb") as f:
+        pickle.dump(smmcts,f)
+    smmcts = MCTS(False)
+    smmcts.time_search(7200)
+    with open("ucb1_tuned.pkl","wb") as f:
+        pickle.dump(smmcts,f)
+    
     
     

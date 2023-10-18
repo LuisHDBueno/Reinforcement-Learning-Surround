@@ -1,10 +1,11 @@
 import numpy as np
 import tensorflow as tf
 from keras.models import Sequential
-import smmcts as m
+import mcts as m
 from keras.layers import Conv2D, MaxPool2D, Flatten, Dense
 import os
 import sys
+from copy import deepcopy
 
 sys.path.append(os.path.join(os.path.dirname(__file__), '../game'))
 
@@ -27,9 +28,9 @@ class NeuralNet():
         :return: Array containing the relative reward for each action, interpreted as a probability distribution
         :rtype: np.array
         """         
-        return self.model.predict(board.reshape(1, BOARD_WIDTH, BOARD_HEIGHT, 3), verbose=1)
+        return self.model.predict(board.reshape(1, BOARD_WIDTH, BOARD_HEIGHT, 3), verbose=0)
         
-    def fit(self, boards: np.array, rewards: np.array, batch_size: int = 64, epochs: int = 1) -> None:
+    def fit(self, boards: np.array, rewards: np.array, batch_size: int = 32, epochs: int = 1) -> None:
         """Fit the model with the given boards and rewards.
 
         :param boards: Array of boards from Monte Carlo Tree Search
@@ -41,9 +42,57 @@ class NeuralNet():
         :param epochs: Number of trainment epochs, defaults to 1
         :type epochs: int, optional
         """
-        self.model.fit(boards, rewards, batch_size=batch_size, epochs=epochs, verbose=0)
+        if len(boards) == 0:
+            print("No boards to fit")
+            return
+        self.model.fit(boards, rewards, batch_size=batch_size, epochs=epochs, verbose=1)
 
-    def play(self, board: np.array, player: int = 1) -> int:
+    def check_out_of_bounds(self, pos_x, pos_y):
+
+        if pos_x > BOARD_WIDTH - 1:
+            return True
+        if pos_y > BOARD_HEIGHT - 1:
+            return True
+        return False
+    
+    def legal_moves(self,game: s.Surround) -> list[tuple[int]]:
+        """returns a list of legal moves for both players
+
+        :param game: game state
+        :type game: s.Surround
+        :return: list of legal moves for both players
+        :rtype: list[tuple[int]]
+        """        
+        board = game.board[:,:,0]
+        player1 = game.player1.pos_x, game.player1.pos_y
+        player2 = game.player2.pos_x, game.player2.pos_y
+        #print("board:", board.astype(np.int8))
+        #print("player1:", game.board[:,:,1].astype(np.int8))
+        #print("player2:", game.board[:,:,2].astype(np.int8))
+        moves1 = []
+        moves2 = []
+
+        if not self.check_out_of_bounds(player1[0]+1, player1[1]):
+            if not (board[player1[0]+1, player1[1]]): moves1.append(1)
+        if not self.check_out_of_bounds(player1[0], player1[1]+1):
+            if not (board[player1[0], player1[1]+1]): moves1.append(2)
+        if not self.check_out_of_bounds(player1[0]-1, player1[1]):
+            if not (board[player1[0]-1, player1[1]]): moves1.append(3)
+        if not self.check_out_of_bounds(player1[0], player1[1]-1):
+            if not (board[player1[0], player1[1]-1]): moves1.append(4)
+
+        if not self.check_out_of_bounds(player2[0]+1, player2[1]):
+            if not (board[player2[0]+1, player2[1]]): moves2.append(1)
+        if not self.check_out_of_bounds(player2[0], player2[1]+1):
+            if not (board[player2[0], player2[1]+1]): moves2.append(2)
+        if not self.check_out_of_bounds(player2[0]-1, player2[1]):
+            if not (board[player2[0]-1, player2[1]]): moves2.append(3)
+        if not self.check_out_of_bounds(player2[0], player2[1]-1):
+            if not (board[player2[0], player2[1]-1]): moves2.append(4)
+
+        return moves1, moves2
+
+    def play(self, game, player: int = 1, eps:int = 0.03) -> int:
         """Choose the best action to play.
 
         :param board: Current game board
@@ -53,17 +102,44 @@ class NeuralNet():
         :return: Best action to play
         :rtype: int
         """
-        if player == 1:            
-            best_action = np.argmax(self.predict(board))
+        # if np.random.uniform(0, 1) < eps:
+        #     return np.random.randint(1, 5)
+        board = game.board
+        moves1, moves2 = self.legal_moves(game)
+        if player == 1:
+            predict = self.predict(board).reshape(4,)
+            fuzzy = predict + 0.5 * np.random.dirichlet(np.array([0.03]*4)).reshape(4,)          
+            best_action = np.argmax(fuzzy) + 1
+            if best_action in moves1:
+                best_action = best_action
+            elif moves1 == []:
+                best_action = 0
+            else:
+                best_action = np.random.choice(moves1)
+
         elif player == 2:
-            board[:,:,0] = np.matmul(np.matmul(PERMUTATION_MATRIX, board[:,:,0]), PERMUTATION_MATRIX)
-            board[:,:,1] = np.matmul(np.matmul(PERMUTATION_MATRIX, board[:,:,1]), PERMUTATION_MATRIX)
-            board[:,:,2] = np.matmul(np.matmul(PERMUTATION_MATRIX, board[:,:,2]), PERMUTATION_MATRIX)
-            board[:, :, 1], board[:, :, 2] = board[:, :, 2], board[:, :, 1]
-            best_action = np.argmin(self.predict(board))
-        return best_action + 1
+            board = deepcopy(board)
+            board[:,:,0] = np.matmul(board[:,:,0], PERMUTATION_MATRIX)
+            board[:,:,1] = np.matmul(board[:,:,1], PERMUTATION_MATRIX)
+            board[:,:,2] = np.matmul(board[:,:,2], PERMUTATION_MATRIX)
+
+            board[:,:,1], board[:,:,2] = board[:,:,2], board[:,:,1]
+            
+            predict = self.predict(board).reshape(4,)
+            fuzzy = predict + 0.5 * np.random.dirichlet(np.array([0.03]*4)).reshape(4,)          
+            best_action = np.argmax(fuzzy) + 1
+
+            del board
+            
+            if best_action in moves2:
+                best_action = best_action
+            elif moves2 == []:
+                best_action = game.player2.last_action
+            else:
+                best_action = np.random.choice(moves2)
+        return best_action
     
-    def get_win_rate(self, adversary: 'NeuralNet',mcts: m.MCTS = None, num_games: int = 50, search_count: int = 1000) -> float:
+    def get_win_rate(self, adversary: 'NeuralNet', num_games: int = 100) -> float:
         """Get the win rate of the model against a fixed adversary.
 
         :param adversary: Neural network to play against
@@ -77,34 +153,28 @@ class NeuralNet():
         :param search_count: Number of searches to perform in each game, defaults to 1000
         :type search_count: int, optional
         """
-        if mcts is None:
-            mcts = m.MCTS(self)
-        win_history = np.empty([0,])
+        win_history = []
         game = s.Surround(human_controls=0)
         game.reset()
 
         for _ in range(num_games):
-            mcts.root_game = game
-            mcts.root_node = mcts.root.get_root()
             while True:
-                mcts.search(search_count) # is it here that I shoudl grow MCTS?
-                model_action = self.play(game.board)
-                adversary_action = adversary.play(game.board, 2)
+                model_action = self.play(game)
+                adversary_action = adversary.play(game, 2)
                 _, _, _, lose1, lose2 = game.step((model_action, adversary_action))
-                mcts.move((model_action, adversary_action))
                 if lose1 and lose2:
-                    win_history = np.append(win_history, 0)
+                    win_history.append(0)
                     break
                 elif lose1:
-                    win_history = np.append(win_history, -1)
+                    win_history.append(-1)
                     break
                 elif lose2:
-                    win_history = np.append(win_history, 1)
+                    win_history.append(1)
                     break
-
-        return win_history.mean(), mcts
+        mean = np.mean(win_history)
+        return mean
     
-    def train(self, adversary: 'NeuralNet', min_win_rate: int = 0.6) -> None: # ATTENTION: docstring must be updated
+    def train(self, adversary: 'NeuralNet', min_win_rate: int = 0.2) -> None: # ATTENTION: docstring must be updated
         """Train the model until it reaches a win rate of 0.55 against the adversary.
 
         :param boards_buffer: _description_
@@ -116,7 +186,7 @@ class NeuralNet():
         :return: Win rate history
         :rtype: np.array
         """        
-        win_rate, _ = self.get_win_rate(adversary)
+        win_rate = self.get_win_rate(adversary)
 
         if win_rate > min_win_rate:
             print(f'Win rate: {win_rate}')
@@ -124,25 +194,37 @@ class NeuralNet():
 
             return np.array([win_rate])
         else:
+            #grow_tree_model = deepcopy(self)
+            mcts = m.MCTS(self, adversary)
             win_rate_history = np.array([win_rate])
-            _, mcts = self.get_win_rate(adversary)
             print(f'Win rate: {win_rate}')
             print("Trainment needed, proceding to trainment...")
 
             trainment_step = 1
-
+            boards_buffer = []
+            probs_buffer = []
             while win_rate < min_win_rate:
-                boards_buffer, probs_buffer = mcts.get_buffers(adversary) # ATTENTION: MCTS is not implemented yet
+                print("====\nTrainment step:", trainment_step)
+                boards_buffer, probs_buffer = mcts.get_buffers(boards_buffer=boards_buffer, probs_buffer=probs_buffer) # ATTENTION: MCTS is not implemented yet
+                array_boards_buffer = np.array(boards_buffer)
+                array_probs_buffer = np.array(probs_buffer)
 
-                self.fit(boards_buffer, probs_buffer, epochs=10)
+                one_hot_probs = np.zeros((array_probs_buffer.shape[0], 4))
+                one_hot_probs[np.arange(array_probs_buffer.shape[0]), np.argmax(array_probs_buffer, axis=1)] = 1
+                array_probs_buffer = one_hot_probs
+
+                self.fit(array_boards_buffer, array_probs_buffer, epochs=10)
                 
-                win_rate, mcts = self.get_win_rate(adversary, mcts=mcts)
+                win_rate = self.get_win_rate(adversary)
                 win_rate_history = np.append(win_rate_history, win_rate)
 
                 print(f'Win rate: {win_rate}')
-                print("Trainment step:", trainment_step)
                 trainment_step += 1
-            
+
+            #del grow_tree_model
+            del mcts
+            del boards_buffer
+            del probs_buffer
             return win_rate_history
         
     def save(self, file_name: str) -> None:
@@ -151,7 +233,7 @@ class NeuralNet():
         :param file_name: Name of the file to save the model
         :type file_name: str
         """            
-        self.model.save(f'./saved_models/{file_name}.keras')
+        self.model.save(f'{file_name}.keras')
 
     def load(self, file_name: str) -> None:
         """Load pre-trained model.
@@ -181,15 +263,11 @@ class DenseNet(NeuralNet):
         # Hidden layers
         for _ in range(n_layers - 1):
             self.model.add(Dense(n_neurons, activation='relu',
-                                  kernel_regularizer = tf.keras.regularizers.l2(0.01)))
+                                  kernel_regularizer = tf.keras.regularizers.l2(0.0001)))
         # Output layer
         self.model.add(Dense(4, activation='softmax'))
-        
-        # Optimizer
-        optimizer = tf.keras.optimizers.Adam(learning_rate = learning_rate)
-        self.model.compile(optimizer=optimizer,
-                            loss="mean_squared_error",
-                            metrics=[tf.keras.metrics.RootMeanSquaredError()])
+        self.model.compile(optimizer='adam', loss="categorical_crossentropy",
+                            metrics=[tf.keras.metrics.CategoricalAccuracy(), tf.keras.metrics.CategoricalCrossentropy()], run_eagerly=True)
 
 class ConvolutionNet(NeuralNet):
     def __init__(self, n_conv_layers: int = 6, n_dense_layers: int = 3, n_neurons: int = 256,
@@ -209,27 +287,23 @@ class ConvolutionNet(NeuralNet):
         """
 
         self.model = Sequential()
-        for _ in range(n_conv_layers // 2):
-            self.model.add(Conv2D(32, (4, 4), activation='relu', padding='same',
-                                   input_shape = input_shape,
-                                   kernel_regularizer=tf.keras.regularizers.l2(0.01)))
-            
-        self.model.add(MaxPool2D(pool_size=(2, 2), padding='same'))
 
-        for _ in range(n_conv_layers - n_conv_layers //2):
-            self.model.add(Conv2D(32, (4, 4), activation='relu', padding='same',
+        self.model.add(Conv2D(32, (4, 4), activation='relu', padding='same',
                                    input_shape = input_shape,
-                                   kernel_regularizer=tf.keras.regularizers.l2(0.01)))
+                                   kernel_regularizer=tf.keras.regularizers.l2(0.001)))
+        
+        for _ in range(n_conv_layers - 1):
+            self.model.add(Conv2D(32, (4, 4), activation='relu', padding='same',
+                                   kernel_regularizer=tf.keras.regularizers.l2(0.001)))
         
         self.model.add(Flatten())
 
         # Dense layers
         for _ in range(n_dense_layers - 1):
             self.model.add(Dense(n_neurons, activation='relu',
-                                  kernel_regularizer = tf.keras.regularizers.l2(0.01)))
+                                  kernel_regularizer = tf.keras.regularizers.l2(0.001)))
         
         # Output layer
         self.model.add(Dense(4, activation='softmax'))
-        optimizer = tf.keras.optimizers.Adam(learning_rate = learning_rate)
-        self.model.compile(optimizer=optimizer, loss="mean_squared_error",
-                            metrics=[tf.keras.metrics.RootMeanSquaredError()])
+        self.model.compile(optimizer='adam', loss="categorical_crossentropy",
+                            metrics=[tf.keras.metrics.CategoricalAccuracy(), tf.keras.metrics.CategoricalCrossentropy()], run_eagerly=True)

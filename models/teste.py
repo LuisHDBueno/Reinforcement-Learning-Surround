@@ -1,18 +1,14 @@
 import numpy as np
+import os
+import sys
+import net_models as nm
+import seaborn as sns
+import pickle
+import matplotlib.pyplot as plt
+history = np.zeros((10, 100))
 
-array_probs_buffer = np.array([[0.1, 0.3, 0.4, 0.9],
-                               [0.1, 0.3, 1, 0.9],
-                               [0.1, 0.3, 0.4, 0.9],
-                               [0.9, 0.3, 0.4, 0.1],
-                               [0.9, 0.3, 0.4, 0.9],
-                               [0, 0, 0, 0]])
 
-print(array_probs_buffer)
-print(array_probs_buffer.shape)
-print(np.argmax(array_probs_buffer, axis=1))
+with open('history.pkl', 'rb') as f:
+    history = pickle.load(f)
 
-one_hot_probs = np.zeros((array_probs_buffer.shape[0], 4))
-one_hot_probs[np.arange(array_probs_buffer.shape[0]), np.argmax(array_probs_buffer, axis=1)] = 1
-array_probs_buffer = one_hot_probs
-
-print(array_probs_buffer)
+np.savetxt("foo.csv", history.astype(np.int8), delimiter=",")

@@ -19,11 +19,12 @@ def train_model(model: str, save_rate: int = 5, train_iterations: int = 10, min_
         agent2 = deepcopy(agent1)
     else:
         agent1 = nm.ConvolutionNet()
+        agent1.load('cnn_1')
         agent2 = deepcopy(agent1)
 
     win_rate_history = np.empty([0,])
 
-    for i in range(train_iterations):
+    for i in range(7, train_iterations + 7):
         print("Passo 1")
         
         train_win_rate_history = agent1.train(adversary=agent2, min_win_rate=min_win_rate)

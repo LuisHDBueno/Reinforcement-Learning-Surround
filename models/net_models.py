@@ -139,7 +139,7 @@ class NeuralNet():
                 best_action = np.random.choice(moves2)
         return best_action
     
-    def get_win_rate(self, adversary: 'NeuralNet', num_games: int = 50) -> float:
+    def get_win_rate(self, adversary: 'NeuralNet', num_games: int = 100) -> float:
         """Get the win rate of the model against a fixed adversary.
 
         :param adversary: Neural network to play against

@@ -41,7 +41,7 @@ For this project, we recreated the game using PyGame a 16 x 16 grid where the tw
 The observation space is a 16 x 16 x 3 boolean matrix where each layer carries information about the game state. The first layer represents the walls, the second layer represents the first player's snake and the third layer represents the second player's snake. The figure below shows an example of the observation space.
 
 <div align="center">
-	<img src = "report/board_to_matrix.png" width=40%> 
+	<img src = "report/board_to_matrix.png" width=80%> 
 </div>
 
 ## Action Space
@@ -85,7 +85,9 @@ We implemented two variations of an AlphaGo-like approach to solve the problem, 
 MCTS builds up a tree where each node represents a game state. Using UCB, we choose which node to expand, until we reach a leaf node. Then, we simulate the game from that node until the end. Finally, we backpropagate the result of the simulation to the root node, updating the nodes' statistics.
 
 ### Results
-
+<div align="center">
+	<img src = "report/Winrate_mcts.png" width=50%> 
+</div>
 
 ## Algorithm 2
 This variation adds a neural network to the MCTS algorithm. The neural network is used to evaluate the game state and to select the best action. The neural network is trained playing against itself, until it becomes capable of achieving a certain win rate against its past version. As explained in the AlphaGo Zero paper (Silver _et al_., 2017):
@@ -95,10 +97,12 @@ This variation adds a neural network to the MCTS algorithm. The neural network i
 ```
 
 ### Results
-
+<div align="center">
+	<img src = "report/CNN_first_model_vs_last.png" width=50%> 
+</div>
 
 # Conclusion
-The trained models proved themselves capable of winning against a clever random player. Although the results are not impressive, we believe that better performance could be achieved with better hardware, more training time and by applying other heuristics to the MCTS algorithm.
+Algorithm 1 proved itself capable of winning against a clever random player, while Algorithm 2 is as good as a clever random player. Nonetheless, Algorithm 1 has demonstrated improvement over time, beating its initial version. Although the results are not impressive, we believe that better performance could be achieved with better hardware, more training time and by applying other heuristics to the MCTS algorithm.
 
 # Usage Guide
 In order to run the code, you must have Python 3.11 and the modules listed in the requirements.txt file installed. We recommend using a virtual environment:

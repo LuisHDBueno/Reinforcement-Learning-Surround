@@ -2,6 +2,13 @@ import numpy as np
 import pygame as pg
 import time
 import math
+import os
+import sys
+import tensorflow as tf
+
+# sys.path.append(os.path.join(os.path.dirname(__file__), '../models'))
+
+# import net_models as nm
 
 BOARD_HEIGHT = 16
 BOARD_WIDTH = 16
@@ -144,15 +151,18 @@ class Player():
             :param y_atualization: number of steps in y axis
             :type y_atualization: int
             """
-            # Fild the wall layer            
-            board[self.pos_x, self.pos_y, 0] = 1
 
             # Update the player position
             board[self.pos_x, self.pos_y, self.layer] = 0
 
             self.pos_x += x_atualization
             self.pos_y += y_atualization
-
+            if self.pos_x > BOARD_WIDTH - 1:
+                self.pos_x = BOARD_WIDTH - 1
+            if self.pos_y > BOARD_HEIGHT - 1:
+                self.pos_y = BOARD_HEIGHT - 1
+            # Fild the wall layer            
+            board[self.pos_x, self.pos_y, 0] = 1
             board[self.pos_x, self.pos_y, self.layer] = 1
         
         match action:
@@ -295,6 +305,7 @@ class Surround():
         self.frame_rate = frame_rate
         self.lose1 = False
         self.lose2 = False
+        self.reward = 0
 
         if self.human_render:
             self.human_board = HumanBoard(self.frame_rate)
@@ -316,6 +327,8 @@ class Surround():
         self.player1 = Player(BOARD_WIDTH * 1//4, BOARD_HEIGHT//2, 1, 1)
         # Third layer is the player 2
         self.player2 = Player(BOARD_WIDTH * 3//4, BOARD_HEIGHT//2, 2, 3)
+        self.board[self.player1.pos_x, self.player1.pos_y, 1] = 1
+        self.board[self.player2.pos_x, self.player2.pos_y, 2] = 1
 
     def check_lose(self, old_board) -> tuple:
         """Check if one of the players lose
@@ -334,6 +347,18 @@ class Surround():
             lose2 = True
         return lose1, lose2
 
+    def copy(self):
+        return (self.board.copy(), (self.player1.pos_x, self.player1.pos_y),
+                (self.player2.pos_x, self.player2.pos_y), (self.lose1, self.lose2), self.reward, self.score)
+    
+    def set_state(self, state):
+
+        self.board = state[0]
+        self.player1.pos_x, self.player1.pos_y = state[1]
+        self.player2.pos_x, self.player2.pos_y = state[2]
+        self.lose1, self.lose2 = state[3]
+        self.reward = state[4]
+        self.score = state[5]
     def step(self, action: tuple) -> tuple:
         """Make a move in the game environment
 
@@ -405,7 +430,8 @@ class Surround():
                 reward = 0
         self.lose1 = lose1
         self.lose2 = lose2
-        return reward, old_board, self.board, lose1, lose2
+        self.reward = reward
+        return reward, old_board, self.board, lose1, lose2, action
 
 class Encoding:
     """Class to encode and decode the game state
@@ -481,14 +507,17 @@ class Encoding:
 
     
 if __name__ == "__main__":
-    jogo = Surround(human_render=True, human_controls=1, frame_rate=5)
+    jogo = Surround(human_render=True, human_controls=0, frame_rate=2)
     jogo.reset()
 
+    model = nm.ConvolutionNet()
+    model.load('cnn')
     for _ in range(10):
         while True:
             retorno = np.random.randint(5)
-            reward, old_board, board, lose1, lose2 = jogo.step((0, retorno))
-            print(reward, lose1, lose2)
+            a = model.play(jogo.board)
+            reward, old_board, board, lose1, lose2 = jogo.step((a, retorno))
+            print(a, reward, lose1, lose2)
             
             if lose1 or lose2:
                 break

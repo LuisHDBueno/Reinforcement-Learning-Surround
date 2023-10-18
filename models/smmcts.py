@@ -306,7 +306,7 @@ class MCTS:
                 else:
                     move1 = random.choice(moves1)
                     move2 = random.choice(moves2)
-                _,_,_,lose1,lose2 = game.step((move1,move2))
+                _,_,_,lose1,lose2,_ = game.step((move1,move2))
                 old_moves = [move1,move2]
             else:
                 lose1, lose2 = True, True
@@ -400,8 +400,8 @@ class MCTS:
         """        
         if self.game_over(self.curr_game):
             return None
-        # if self.curr_node.N<10:
-        #     self.search_curr(50)
+        if self.curr_node.N<10:
+            self.search_curr(50)
         if self.curr_node.children == {}:
             print("no children")
             return None
@@ -420,7 +420,35 @@ class MCTS:
         return (best_child1, best_child2)
     
 
+    def best_move_timer(self, time_limit: float = 1) -> tuple[int,int]:
+        """returns the best move for each player for curr_game
 
+        :param time_limit: time to make decision, defaults to 1
+        :type time_limit: float, optional
+        :return: move for each player
+        :rtype: tuple[int,int]
+        """
+        if self.game_over(self.curr_game):
+            return None
+        start = time.time()
+        while time.time() - start < time_limit-0.02:
+            self.search_curr(1)
+        if self.curr_node.children == {}:
+            print("no children")
+            return None
+        max_value1 = max(self.curr_node.children.values(), key=lambda child: child.get_win_rate(0)).get_win_rate(0)
+        max_value2 = max(self.curr_node.children.values(), key=lambda child: child.get_win_rate(1)).get_win_rate(1)
+        if max_value1 == 0:
+            max_nodes1 = [child for child in self.curr_node.children.values()]
+        else:
+            max_nodes1 = [child for child in self.curr_node.children.values() if child.Q[0]/child.N == max_value1]
+        if max_value2 == 0:
+            max_nodes2 = [child for child in self.curr_node.children.values()]
+        else:
+            max_nodes2 = [child for child in self.curr_node.children.values() if child.Q[1]/child.N == max_value2]
+        best_child1 = random.choice(max_nodes1).move[0]
+        best_child2 = random.choice(max_nodes2).move[1]
+        return (best_child1, best_child2)
     
     def get_buffers(self) -> tuple[np.array,np.array]:
         """get the buffer of the tree
@@ -506,11 +534,21 @@ def play_against_rand(smmcts: MCTS, num_games: int = 10):
                 break
     return wins/num_games
 
-    
+def play_human(smmcts,frame_rate):
+    jogo = s.Surround(human_render=True, human_controls=1,frame_rate=frame_rate)
+    jogo.reset()
+    while True:
+        moves = smmcts.best_move_timer(1/frame_rate)
+        if moves is None:
+            print('hi')
+            moves =(1,1)
+        reward, old_board, board, lose1, lose2, action = jogo.step(moves)
+
+
+        smmcts.move(action)
 if __name__ == "__main__":
     
-    smmcts = MCTS(False)
-    smmcts.search(10000)
-    print(play_against_rand(smmcts,1000))
+    smmcts = MCTS()
+    play_human(smmcts,20)
     
     

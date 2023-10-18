@@ -120,7 +120,7 @@ In order to run the code, you must have Python 3.11 and the modules listed in th
   python3 game/surround.py challenge
   ```
 
-  To play the game against a random model, run the following command:
+  To play the game against a clever random model, run the following command:
   
   ```
   python3 game/surround.py random
@@ -130,12 +130,6 @@ In order to run the code, you must have Python 3.11 and the modules listed in th
   
   ```
   python3 game/surround.py human
-  ```
-
-  To watch two models playing against each other, run the following command:
-  
-  ```
-  python3 game/surround.py watch
   ```
 
   For a one human player game, the controls are WASD. For a two human player game, the controls are WASD for the first player and the arrow keys for the second player.

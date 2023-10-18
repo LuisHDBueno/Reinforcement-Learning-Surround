@@ -5,7 +5,7 @@ import sys
 
 sys.path.append(os.path.join(os.path.dirname(__file__), '../models'))
 
-from net_models import DenseNet, ConvolutionNet
+import net_models as nm
 
 if __name__ == "__main__":
     parameters = sys.argv[1:]
@@ -32,7 +32,7 @@ if __name__ == "__main__":
         game = s.Surround(human_render=True, human_controls=1, frame_rate=5)
         game.reset()
 
-        model = DenseNet()
+        model = nm.NeuralNet()
 
         for _ in range(10):
             while True:
@@ -44,6 +44,28 @@ if __name__ == "__main__":
                     a = moves2[np.random.randint(len(moves2))]
 
                 game.step((0, a))
+                if game.lose1 or game.lose2:
+                    break
+
+    elif parameters[0] == "test":
+        game = s.Surround(human_render=True, human_controls=0, frame_rate=20)
+        game.reset()
+
+        model = nm.ConvolutionNet()
+        model.load("cnn_1")
+
+        for _ in range(10):
+            while True:
+                moves1, moves2 = model.legal_moves(game)
+
+                a = 0
+
+                if len(moves2) > 0:
+                    a = moves2[np.random.randint(len(moves2))]
+
+                action = model.play(game)
+
+                game.step((action, a))
                 if game.lose1 or game.lose2:
                     break
 

@@ -562,11 +562,11 @@ def play_human(smmcts: MCTS,frame_rate: int = 7):
 if __name__ == "__main__":
     
     smmcts = MCTS(True)
-    smmcts.time_search(7200)
+    smmcts.time_search(9900)
     with open("ucb1.pkl","wb") as f:
         pickle.dump(smmcts,f)
     smmcts = MCTS(False)
-    smmcts.time_search(7200)
+    smmcts.time_search(9900)
     with open("ucb1_tuned.pkl","wb") as f:
         pickle.dump(smmcts,f)
     

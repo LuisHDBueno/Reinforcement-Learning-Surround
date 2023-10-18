@@ -401,7 +401,7 @@ class MCTS:
             self.curr_node = self.root
         # raise Exception("Move not in children")
 
-    def best_move(self) -> tuple[int,int]:
+    def best_move(self,num_search = 50) -> tuple[int,int]:
         """returns the best move for each player for curr_game
 
         :return: best move for each player
@@ -409,8 +409,8 @@ class MCTS:
         """        
         if self.game_over(self.curr_game):
             return (1,1)
-        if self.curr_node.N<10:
-            self.search_curr(50)
+        
+        self.search_curr(num_search)
         if self.curr_node.children == {}:
             return (1,1)
         max_value1 = max(self.curr_node.children.values(), key=lambda child: child.get_win_rate(0)).get_win_rate(0)
@@ -437,13 +437,13 @@ class MCTS:
         :rtype: tuple[int,int]
         """
         if self.game_over(self.curr_game):
-            return None
+            return (1,1)
         start = time.time()
         while time.time() - start < time_limit:
             self.search_curr(1)
         if self.curr_node.children == {}:
             print("no children")
-            return None
+            return (1,1)
         max_value1 = max(self.curr_node.children.values(), key=lambda child: child.get_win_rate(0)).get_win_rate(0)
         max_value2 = max(self.curr_node.children.values(), key=lambda child: child.get_win_rate(1)).get_win_rate(1)
         if max_value1 == 0:
@@ -504,7 +504,7 @@ class MCTS:
         return self.node_count
     
 
-def play_against_rand(smmcts: MCTS, num_games: int = 10) -> float:
+def play_against_rand(smmcts: MCTS, num_games: int = 10, frame_rate = 5, render = False) -> float:
     """play against random agent
 
     :param smmcts: MCTS used to play
@@ -514,14 +514,12 @@ def play_against_rand(smmcts: MCTS, num_games: int = 10) -> float:
     :return: winrate
     :rtype: float
     """    
-    jogo = s.Surround(human_render=False)
+    jogo = s.Surround(human_render=render, human_controls=0, frame_rate=frame_rate)
     jogo.reset()
     wins = 0
     for i in range(num_games):
         while True:
-            moves = smmcts.best_move()
-            if moves is None:
-                moves =(1,1)
+            moves = smmcts.best_move(100)
             rd = smmcts.legal_moves(jogo)
             if len(rd):
                 rd = random.choice(rd)
@@ -535,7 +533,7 @@ def play_against_rand(smmcts: MCTS, num_games: int = 10) -> float:
                 break
     return wins/num_games
 
-def play_human(smmcts: MCTS,frame_rate: int = 7):
+def play_human(smmcts: MCTS,frame_rate: int = 5):
     """play against human
 
     :param smmcts: MCTS used to play
@@ -547,25 +545,28 @@ def play_human(smmcts: MCTS,frame_rate: int = 7):
     jogo.reset()
     while True:
         moves = smmcts.best_move_timer(1/frame_rate)
-        if moves is None:
-            moves = smmcts.legal_moves(jogo)
-            moves = random.choices(moves)[0]
         reward, old_board, board, lose1, lose2, action = jogo.step(moves)
+        if action[1] ==0:
+            action = (action[0],jogo.player2.last_action)
         smmcts.move(action)
         if lose1 or lose2:
             smmcts.curr_game.reset()
             smmcts.curr_node = smmcts.root
 
-def mcts_battle(mcts1,mcts2, num_games = 10, render = False) -> list[tuple[int,int]]:
-    jogo = s.Surround(human_render=render, human_controls=0)
+def mcts_battle(mcts1,mcts2, num_games = 10, render = False,frame_rate = 5, timed = False, num_searches =100) -> list[tuple[int,int]]:
+    jogo = s.Surround(human_render=render, human_controls=0, frame_rate=frame_rate)
     jogo.reset()
     loses = []
     i=0
     while i <num_games:
-        moves1 = mcts1.best_move()
-        moves2 = mcts2.best_move()
-        
+        if timed:
+            moves1 = mcts1.best_move_timer(1/frame_rate)
+            moves2 = mcts2.best_move_timer(1/frame_rate)
+        else:
+            moves1 = mcts1.best_move(num_searches)
+            moves2 = mcts2.best_move(num_searches)
         moves = (moves1[0], moves2[1])
+
         reward, old_board, board, lose1, lose2, action = jogo.step(moves)
         mcts1.move(action)
         mcts2.move(action)
@@ -578,4 +579,4 @@ if __name__ == "__main__":
     
     smmcts = MCTS(True)
     smmcts2 = MCTS(False)
-    loses = mcts_battle(smmcts,smmcts2, num_games= 100, render=True)
+    mcts_battle(smmcts,smmcts2,1000,render=True,frame_rate=30,timed=False,num_searches=50)

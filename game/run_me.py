@@ -6,6 +6,7 @@ import sys
 sys.path.append(os.path.join(os.path.dirname(__file__), '../models'))
 
 import net_models as nm
+import smmcts
 
 if __name__ == "__main__":
     parameters = sys.argv[1:]
@@ -23,19 +24,8 @@ if __name__ == "__main__":
                     break
 
     elif parameters[0] == "challenge":
-        game = s.Surround(human_render=True, human_controls=1, frame_rate=5)
-        game.reset()
-
-        model = nm.ConvolutionNet()
-        model.load("cnn_8")
-
-        for _ in range(10):
-            while True:
-                action = model.play(game, player=2)
-
-                game.step((0, action))
-                if game.lose1 or game.lose2:
-                    break
+        mcts = smmcts.MCTS()
+        smmcts.play_human(mcts)
 
     elif parameters[0] == "random":
         game = s.Surround(human_render=True, human_controls=1, frame_rate=5)

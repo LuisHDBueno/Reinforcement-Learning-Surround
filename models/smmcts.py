@@ -1,4 +1,3 @@
-
 import numpy as np
 from copy import deepcopy
 import sys
@@ -125,11 +124,6 @@ class Node:
         while node.parent is not None:
             node = node.parent
         return node
-    
-
-        
-
-
 
 class MCTS:
     def __init__(self,use_ucb1:bool = True, game: s.Surround = None):
@@ -579,35 +573,9 @@ def mcts_battle(mcts1,mcts2, num_games = 10, render = False) -> list[tuple[int,i
             loses.append((lose1,lose2))
             i+=1
     return loses
+
 if __name__ == "__main__":
     
     smmcts = MCTS(True)
     smmcts2 = MCTS(False)
-    loses = mcts_battle(smmcts,smmcts2, num_games= 100)
-    winrate_1, winrate_2 = [],[]
-    num_wins1, num_wins2 = 0,0
-    for i in range(100):
-        if loses[i][0] == 1 and loses[i][1] == 0:
-            num_wins1 +=1
-        if loses[i][1] == 1 and loses[i][0] == 0:
-            num_wins2 +=1
-        winrate_1.append(num_wins1/(i+1))
-        winrate_2.append(num_wins2/(i+1))
-    with open ("ucb12.pkl", "wb") as f:
-        pickle.dump(smmcts,f)
-    with open("ucbt2.pkl", "wb") as f:
-        pickle.dump(smmcts2,f)
-    with open("winrate.txt", "w") as file:
-        for i in range(100):
-            file.write(f'{winrate_1[i]},{winrate_2[i]}\n')
-    plt.figure(12,8)
-    plt.plot(range(100),winrate_1,label = "ucb1", color ='b')
-    plt.plot(range(100),winrate_2,label = "ucb1 tuned", color = 'r')
-    plt.title('Winrate over time')  
-    plt.xlabel('Games')
-    plt.ylabel('Winrate')
-    plt.savefig("Winrate_mcts.png")
-
-    
-    
-    
+    loses = mcts_battle(smmcts,smmcts2, num_games= 100, render=True)

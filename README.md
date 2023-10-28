@@ -97,6 +97,8 @@ This variation adds a neural network to the MCTS algorithm. The neural network i
 ```
 
 ### Results
+The figure below shows the evolution of the neural network's win rate against its past version. We ran 10 samples of 100 games between the last state of the neural network against its first state. The results highlight the fact that the neural network improved over time, winning more games against its past version.
+
 <div align="center">
 	<img src = "report/CNN_first_model_vs_last.png" width=50%> 
 </div>
@@ -116,16 +118,28 @@ In order to run the code, you must have Python 3.11 and the modules listed in th
   pip install -r requirements.txt
   ```
 
-  To play the game against our best model, run the following command:
+  To play the game against our best MCTS model, run the following command:
   
   ```
-  python game/run_me.py challenge
+  python game/run_me.py mcts
+  ```
+
+  To play the game against our best Neural Net model, run the following command:
+  
+  ```
+  python game/run_me.py net
   ```
 
   To play the game against a clever random model, run the following command:
   
   ```
   python game/run_me.py random
+  ```
+
+  To watch the last neural net play against the first, run the following command:
+  
+  ```
+  python game/run_me.py evolution
   ```
 
   To play the game against a human player, run the following command:

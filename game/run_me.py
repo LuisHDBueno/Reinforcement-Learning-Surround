@@ -11,78 +11,84 @@ import smmcts
 if __name__ == "__main__":
     parameters = sys.argv[1:]
 
+    # Wrong number of parameters
     if len(parameters) > 1:
         raise Exception("Expected only one parameter, got " + str(len(parameters)))
+    
+    # No parameter or human game => human vs human
     elif len(parameters) == 0 or parameters[0] == "human":
         game = s.Surround(human_render=True, human_controls=2, frame_rate=5)
         game.reset()
 
-        for _ in range(10):
-            while True:
-                game.step((0, 0))
-                if game.lose1 or game.lose2:
-                    break
+        while True:
+            game.step((0, 0))
 
-    elif parameters[0] == "challenge":
-        game = s.Surround(human_render=True, human_controls=1, frame_rate=5)
-        game.reset()
-
-        model = nm.ConvolutionNet()
-        model.load("cnn_8")
-
-        for _ in range(10):
-            while True:
-                action = model.play(game, player=2)
-
-                game.step((0, action))
-                if game.lose1 or game.lose2:
-                    break
-
-
+    # Human vs random
     elif parameters[0] == "random":
         game = s.Surround(human_render=True, human_controls=1, frame_rate=5)
         game.reset()
 
         model = nm.NeuralNet()
 
-        for _ in range(10):
-            while True:
-                moves1, moves2 = model.legal_moves(game)
+        while True:
+            moves1, moves2 = model.legal_moves(game)
 
-                a = 0
+            a = 0
 
-                if len(moves2) > 0:
-                    a = moves2[np.random.randint(len(moves2))]
+            if len(moves2) > 0:
+                a = moves2[np.random.randint(len(moves2))]
 
-                game.step((0, a))
-                if game.lose1 or game.lose2:
-                    break
+            game.step((0, a))
 
-    elif parameters[0] == "test":
+    # Best Neural Net vs First Neural Net
+    elif parameters[0] == "evolution":
         game = s.Surround(human_render=True, human_controls=0, frame_rate=30)
         game.reset()
 
-        model = nm.ConvolutionNet()
-        model.load("cnn_8")
+        model1 = nm.ConvolutionNet()
+        model1.load("cnn_8")
         model2 = nm.ConvolutionNet()
         model2.load("cnn_0")
 
         while True:
-            while True:
+            moves1, moves2 = model1.legal_moves(game)
 
-                moves1, moves2 = model.legal_moves(game)
+            action2 = model2.play(game, player=2)
+            action1 = model1.play(game)
 
-                a = 0
+            game.step((action1, action2))
 
-                if len(moves2) > 0:
-                    a = moves2[np.random.randint(len(moves2))]
+    # Human vs best SMMCTS model
+    elif parameters[0] == "mcts":
+        jogo = s.Surround(human_render=True, human_controls=1, frame_rate=5)
+        jogo.reset()
 
-                action2 = model2.play(game, player=2)
-                action = model.play(game)
+        mcts = smmcts.MCTS()
+        
+        while True:
+            moves = mcts.best_move_timer(1/5)
 
-                game.step((action, a))
-                if game.lose1 or game.lose2:
-                    break
+            reward, old_board, board, lose1, lose2, action = jogo.step((0, moves[1]))
+            
+            action = (jogo.player1.last_action, moves[1])
+            
+            mcts.move(action)
 
+    # Human vs best Neural Net
+    elif parameters[0] == "net":
+        game = s.Surround(human_render=True, human_controls=1, frame_rate=10)
+        game.reset()
+
+        model = nm.ConvolutionNet()
+        model.load("cnn_8")
+
+        while True:
+            moves1, moves2 = model.legal_moves(game)
+
+            action2 = model.play(game, player=2)
+
+            game.step((0, action2))
+
+    # Unknown parameter
     else:
         raise Exception("Invalid parameter: " + parameters[0])

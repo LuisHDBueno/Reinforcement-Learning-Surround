@@ -43,7 +43,7 @@ class HumanBoard():
         self.font = pg.font.Font(None, FONT)
 
     def render(self, board: np.array, score: tuple) -> None:
-        """ Render the window
+        """Render the window
 
         :param board: Board of the game
         :type board: np.array
@@ -83,14 +83,15 @@ class HumanBoard():
         
         pg.display.update()
         time.sleep(1/self.frame_rate)
+
         for event in pg.event.get():
             if event.type == pg.QUIT:
                 pg.quit()
 
     def win(self, player: int) -> None:
-        """ Render the win text
+        """Render the win text
 
-        :param player: _description_
+        :param player: Who won, 0 = tie, 1 = player1, 2 = player2
         :type player: int
         """
         if player == 0:
@@ -108,8 +109,18 @@ class HumanBoard():
         pg.quit()
     
 class Player():
+    """Class to represent a player
+
+    Attributes:
+        pos_x: x position of the player
+        pos_y: y position of the player
+        layer: layer of the player in the board, 1 = player1, 2 = player2
+        last_action: last action made by the player, 1 = right, 2 = up, 3 = left, 4 = down
+    Methods:
+        move: make a move in the board
+    """
     def __init__(self, pos_x: int, pos_y: int, layer: int, init_action: int) -> None:
-        f""" Init a player
+        f"""Init a player
 
         :param pos_x: Init x position, between 0 and {BOARD_WIDTH - 1}
         :type pos_x: int
@@ -125,17 +136,16 @@ class Player():
         self.last_action = init_action
 
     def move(self, board: np.array, action: int) -> tuple:
-        """ Make a move in the board
+        """Make a move in the board
 
-        :param board: Board of the game
+        :param board: Game board
         :type board: np.array
         :param action: Action to be made, 0 = stay, 1 = right, 2 = up, 3 = left, 4 = down
         :type action: int
         :return: Tuple of the new board and if the player lose
         :rtype: tuple
         """
-        # Auxiliar
-        
+        # Auxiliar function to atualize the player position
         def atualize_pos(x_atualization: int, y_atualization: int) -> None:
             """Atualize the player position
 
@@ -154,19 +164,20 @@ class Player():
                 self.pos_x = BOARD_WIDTH - 1
             if self.pos_y > BOARD_HEIGHT - 1:
                 self.pos_y = BOARD_HEIGHT - 1
+
             # Fild the wall layer            
             board[self.pos_x, self.pos_y, 0] = 1
             board[self.pos_x, self.pos_y, self.layer] = 1
         
         match action:
             case 0:
-                # If the player stay, continue in the same direction
+                # If the player chose to continue in the same direction
                 self.move(board, self.last_action)
             case 1:
-                # Check if the player try to go back
+                # Check if the player is trying to go back
                 if self.last_action == 3:
-                    # If yes, continue in the same direction
-                    board= self.move(board, 3)
+                    # Continue in the same direction
+                    board = self.move(board, 3)
                 else:
                     atualize_pos(1, 0)
                     self.last_action = 1
@@ -195,17 +206,18 @@ class Player():
         return board
 
 class OutOfActionSpace(Exception):
+    """Exception to be raised when the action is not in the action space"""
     def __init__(self) -> None:
         super().__init__("Action not in action space") 
 
 class HumanControls():
-    """Class to control the human players
-    Only works if the game was reseted
+    """Class to control the human players. Only works if the game was reseted.
 
     Attributes:
         player: player to be controlled
     Methods:
         get_action: get the action of the player
+        get_moves: get the actions of all players
     """    
     def __init__(self, n_player: int) -> None:
         """Init the player to be controlled
@@ -277,8 +289,12 @@ class Surround():
         lose1: If player1 lose
         lose2: If player2 lose
     Methods:
-        reset: reset the game environment
-        step: make a move in the game environment
+        reset: Reset the game enviroment (and initialize it)
+        check_lose: Check if one of the players has lost
+        step: Make a move in the game environment
+        copy: Copy the game state
+        set_state: Set the game state
+        step: Make a move in the game environment
     """
     action_space = [0, 1, 2, 3, 4]
     score = (0, 0)
@@ -308,23 +324,26 @@ class Surround():
             self.human_controls = None
 
     def reset(self) -> None:
-        """Reset the game enviroment (and initialize)"""
+        """Reset the game enviroment (and initialize it)"""
         # 0 = empty
         self.board = np.zeros((BOARD_WIDTH, BOARD_HEIGHT, 3), dtype = np.bool_)
+
         # First layer is the walls
         self.board[0, : , 0] = 1
         self.board[BOARD_WIDTH - 1, : , 0] = 1
         self.board[ : , 0, 0] = 1
         self.board[ : , BOARD_HEIGHT - 1, 0] = 1
+
         # Second layer is the player 1
         self.player1 = Player(BOARD_WIDTH * 1//4, BOARD_HEIGHT//2, 1, 1)
+        
         # Third layer is the player 2
         self.player2 = Player(BOARD_WIDTH * 3//4, BOARD_HEIGHT//2, 2, 3)
         self.board[self.player1.pos_x, self.player1.pos_y, 1] = 1
         self.board[self.player2.pos_x, self.player2.pos_y, 2] = 1
 
-    def check_lose(self, old_board) -> tuple:
-        """Check if one of the players lose
+    def check_lose(self, old_board: np.array) -> tuple:
+        """Check if one of the players has lost
 
         :param old_board: Board before the move
         :type old_board: np.array
@@ -338,20 +357,31 @@ class Surround():
             lose1 = True
         if old_board[self.player2.pos_x, self.player2.pos_y, 0] != 0:
             lose2 = True
+
         return lose1, lose2
 
     def copy(self):
+        """Copy the game state
+        
+        :return: Tuple of the board, player1 position, player2 position, player1 lose, player2 lose, reward and score
+        :rtype: tuple(np.array, tuple(int, int), tuple(int, int), tuple(bool, bool), int, tuple(int, int))
+        """
         return (self.board.copy(), (self.player1.pos_x, self.player1.pos_y),
                 (self.player2.pos_x, self.player2.pos_y), (self.lose1, self.lose2), self.reward, self.score)
     
-    def set_state(self, state):
-
+    def set_state(self, state: tuple) -> None:
+        """Set the game state
+        
+        :param state: Tuple of the board, player1 position, player2 position, player1 lose, player2 lose, reward and score
+        :type state: tuple(np.array, tuple(int, int), tuple(int, int), tuple(bool, bool), int, tuple(int, int))
+        """
         self.board = state[0]
         self.player1.pos_x, self.player1.pos_y = state[1]
         self.player2.pos_x, self.player2.pos_y = state[2]
         self.lose1, self.lose2 = state[3]
         self.reward = state[4]
         self.score = state[5]
+    
     def step(self, action: tuple) -> tuple:
         """Make a move in the game environment
 
@@ -424,10 +454,15 @@ class Surround():
         self.lose1 = lose1
         self.lose2 = lose2
         self.reward = reward
+
         return reward, old_board, self.board, lose1, lose2, action
 
 class Encoding:
-    """Class to encode and decode the game state
+    """Class to encode and decode the game state. Used to save the game state in a int
+
+    Methods:
+        encode: Encode the board into a int
+        decode: Decode the int into a board
     """
     def __init__(self) -> None:
         pass
@@ -451,6 +486,7 @@ class Encoding:
         player1y_bits = np.binary_repr(player1y, width=pos_size)
         player2x_bits = np.binary_repr(player2x, width=pos_size)
         player2y_bits = np.binary_repr(player2y, width=pos_size)
+
         # Combine game state and player positions into a single binary string
         encoded_bits = np.zeros((len(game_state_bits) + pos_size * 4,), dtype=np.uint8)
         board_size = (BOARD_WIDTH - 2)*(BOARD_HEIGHT-2)
@@ -460,6 +496,7 @@ class Encoding:
         encoded_bits[board_size+2*pos_size:board_size+3*pos_size]  |= np.array(list(player2x_bits), dtype=np.uint8)
         encoded_bits[board_size+3*pos_size:]  |= np.array(list(player2y_bits), dtype=np.uint8)
         encoded_int = encoded_int = int(''.join(map(str, encoded_bits.tolist())), 2)
+
         return encoded_int
 
     def decode(self, state_int: int) -> np.array:

@@ -577,7 +577,7 @@ def mcts_battle(mcts1,mcts2, num_games = 10, render = False,frame_rate = 5, time
     :type render: bool, optional
     :param frame_rate: frame rate of the game, defaults to 5
     :type frame_rate: int, optional
-    :param timed: if True the MCTS will be timed, defaults to False
+    :param timed: if True the MCTS will be trained in the time between frames, defaults to False
     :type timed: bool, optional
     :param num_searches: number of searches to be performed, defaults to 100
     :type num_searches: int, optional

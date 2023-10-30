@@ -11,7 +11,7 @@ sys.path.append(os.path.join(os.path.dirname(__file__), '../game'))
 import surround as s
 
 class Node:
-    """MCTS Node
+    """SMMCTS Node
 
     Attributes:
         move: moves taken from parent (move_player1, move_player2)
@@ -138,8 +138,8 @@ class Node:
 
         return node
 
-class MCTS:
-    """Monte Carlo Tree Search
+class SMMCTS:
+    """Simultaneous Move Monte Carlo Tree Search
     
     Attributes:
         root_game: root game
@@ -167,7 +167,7 @@ class MCTS:
         __sizeof__: returns the size of the tree
     """
     def __init__(self,use_ucb1:bool = True, game: s.Surround = None):
-        """Init of class MCTS
+        """Init of class SMMCTS
         :param use_ucb1: if True select child using UCB1, otherwise select child using UCB1-Tuned, defaults to True
         :type use_ucb1: bool, optional
         :param game: root game, defaults to None
@@ -565,19 +565,19 @@ class MCTS:
         return self.node_count
 
 def mcts_battle(mcts1,mcts2, num_games = 10, render = False,frame_rate = 5, timed = False, num_searches =100) -> list[tuple[int,int]]:
-    """Watch a battle between two MCTS
+    """Watch a battle between two SMMCTS
     
-    :param mcts1: MCTS 1
-    :type mcts1: MCTS
-    :param mcts2: MCTS 2
-    :type mcts2: MCTS
+    :param mcts1: SMMCTS 1
+    :type mcts1: SMMCTS
+    :param mcts2: SMMCTS 2
+    :type mcts2: SMMCTS
     :param num_games: number of games to be played, defaults to 10
     :type num_games: int, optional
     :param render: if True renders the game, defaults to False
     :type render: bool, optional
     :param frame_rate: frame rate of the game, defaults to 5
     :type frame_rate: int, optional
-    :param timed: if True the MCTS will be trained in the time between frames, defaults to False
+    :param timed: if True the SMMCTS will be trained in the time between frames, defaults to False
     :type timed: bool, optional
     :param num_searches: number of searches to be performed, defaults to 100
     :type num_searches: int, optional

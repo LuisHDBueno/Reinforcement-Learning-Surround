@@ -63,7 +63,7 @@ if __name__ == "__main__":
         jogo = s.Surround(human_render=True, human_controls=1, frame_rate=5)
         jogo.reset()
 
-        mcts = smmcts.MCTS()
+        mcts = smmcts.SMMCTS()
         
         while True:
             moves = mcts.best_move_timer(1/5)

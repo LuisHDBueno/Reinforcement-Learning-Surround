@@ -82,9 +82,10 @@ In our implementation, rewards are only applied to player 1. Winning an episode 
 We implemented two variations of an AlphaGo-like approach to solve the problem, using Monte Carlo Tree Search (MCTS). The first relies solely on MCTS, while the second uses a neural network to guide the tree expansion, learning how to evaluate the game state and how to select the best action. We considered the problem solved if the trained models were capable of winning against a "clever random player", that is, one that chooses randomly among the set of actions that would not lead to its death.
 
 ## Algorithm 1: Pure Monte Carlo Tree Search
-MCTS builds up a tree where each node represents a game state. Using UCB, we choose which node to expand, until we reach a leaf node. Then, we simulate the game from that node until the end. Finally, we backpropagate the result of the simulation to the root node, updating the nodes' statistics.
+MCTS builds up a tree where each node represents a game state. Using Upper confidence Bound (UCB1) or UCB1-Tuned algorithms [[3]](#3), each of the two players chooses moves simultaneously until a leaf node is reached. Then, we simulate a game for each legal move (moves that don't run into a wall), from that node state until the end. Finally, we backpropagate the results of the simulations to the root node, updating the nodes' statistics. This implementation uses a altered reward system where a win is valued as 1, a draw is valued at 0 and losing is valued at -1. Playing a game, the moves choosen are the moves with highest score for each player.
 
 ### Results
+The figure below shows the result show the result of a 100 games where the two agents are using MCTS, where player 1 is using UCB1 and player two is UCB1-Tuned.
 <div align="center">
 	<img src = "report/Winrate_mcts.png" width=50%> 
 </div>
@@ -153,20 +154,20 @@ In order to run the code, you must have Python 3.11 and the modules listed in th
 # References
 The theoretical basis and implementation of this project were based on the following references:
 
-LANCTOT, Marc; WITTLINGER, Christopher; WINANDS, Mark H. M.; TEULING, Niek G. P. Den. Monte Carlo Tree Search for Simultaneous
+<a id="1">[1]</a> LANCTOT, Marc; WITTLINGER, Christopher; WINANDS, Mark H. M.; TEULING, Niek G. P. Den. Monte Carlo Tree Search for Simultaneous
 Move Games: A Case Study in the Game of Tron. **Proceedings of Computer Games Workshop**. 2012. Available at: <https://dke.maastrichtuniversity.nl/m.winands/documents/sm-tron-bnaic2013.pdf>. Access on: 2023/10/15.
 
-LAPAN, Maxim. **Deep Reinforcement Learning Hands-On**. 2nd Edition. Packt Publishing, 2020.
+<a id="1">[2]</a> LAPAN, Maxim. **Deep Reinforcement Learning Hands-On**. 2nd Edition. Packt Publishing, 2020.
 
-PREICK, Pierre; ST-PIERRE, David L.; MAES, Francis; ERNST, Damien. Comparison of Different Selection Strategies in Monte-Carlo Tree
+<a id="1">[3]</a> PREICK, Pierre; ST-PIERRE, David L.; MAES, Francis; ERNST, Damien. Comparison of Different Selection Strategies in Monte-Carlo Tree
 Search for the Game of Tron. **IEEE Conference on Computational Intelligence and Games (CIG)**, Granada, Spain, 2012, pp. 242-249, DOI: 10.1109/CIG.2012.6374162.
 
-SILVER, D., HUANG, A., MADDISON, C. _et al_. Mastering the game of Go with deep neural networks and tree search. **Nature**, n. 529, p. 484–489 (2016). DOI: 10.1038/nature16961
+<a id="1">[4]</a> SILVER, D., HUANG, A., MADDISON, C. _et al_. Mastering the game of Go with deep neural networks and tree search. **Nature**, n. 529, p. 484–489 (2016). DOI: 10.1038/nature16961
 
-SILVER, D.; SCHRITTWIESER, J.; SIMONYAN, K. _et al_. Mastering the game of Go without human knowledge. **Nature**, n. 550, p. 354–359 (2017). DOI: 10.1038/nature24270
+<a id="1">[5]</a> SILVER, D.; SCHRITTWIESER, J.; SIMONYAN, K. _et al_. Mastering the game of Go without human knowledge. **Nature**, n. 550, p. 354–359 (2017). DOI: 10.1038/nature24270
 
-SLOANE, Andy. **Google AI Challenge post-mortem**. 2011. Available at: <https://web.archive.org/web/20111230055046/http://a1k0n.net/2010/03/04/google-ai-postmortem.html>. Access on: 2023/10/15.
+<a id="1">[6]</a> SLOANE, Andy. **Google AI Challenge post-mortem**. 2011. Available at: <https://web.archive.org/web/20111230055046/http://a1k0n.net/2010/03/04/google-ai-postmortem.html>. Access on: 2023/10/15.
 
-SUTTON, Richard S.; BARTO, Andrew G. **Reinforcement Learning: An Introduction**. 2nd Edition. MIT Press, 2018.
+<a id="1">[7]</a> SUTTON, Richard S.; BARTO, Andrew G. **Reinforcement Learning: An Introduction**. 2nd Edition. MIT Press, 2018.
 
-WANG, Qi. **Connect 4 with Monte Carlo Tree Search**. 2022. Available at: <https://www.harrycodes.com/blog/monte-carlo-tree-search>. Access on: 2023/10/15.
+<a id="1">[8]</a> WANG, Qi. **Connect 4 with Monte Carlo Tree Search**. 2022. Available at: <https://www.harrycodes.com/blog/monte-carlo-tree-search>. Access on: 2023/10/15.
